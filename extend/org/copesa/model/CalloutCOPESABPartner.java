@@ -27,6 +27,7 @@ import org.compiere.model.GridTab;
  *	
  *  @author Italo Niñoles
  *  @version $Id: CalloutCOPESACreditCard.java,v 1.5 2016/04/25 
+ *  
  */
 public class CalloutCOPESABPartner extends CalloutEngine
 {
