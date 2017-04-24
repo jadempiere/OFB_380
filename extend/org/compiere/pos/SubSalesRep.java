@@ -222,6 +222,7 @@ public class SubSalesRep extends PosSubPanel implements ActionListener
 						   this,
 						   "Password invalida");
 		 	*/
+			
 			//Antes de setar actualizamos fecha de la cabecera
 			MOrder order = p_posPanel.f_curLine.getOrder();
 			//ininoles validacion de stock

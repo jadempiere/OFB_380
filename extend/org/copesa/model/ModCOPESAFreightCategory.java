@@ -85,168 +85,18 @@ public class ModCOPESAFreightCategory implements ModelValidator
 	{
 		log.info(po.get_TableName() + " Type: "+type);
 		
-		if((type == TYPE_AFTER_CHANGE || type == TYPE_AFTER_NEW) && po.get_Table_ID()==MOrder.Table_ID && po.is_ValueChanged("DocStatus")) 
+		if(
+			(type == TYPE_AFTER_CHANGE || type == TYPE_AFTER_NEW) && po.get_Table_ID()==MOrder.Table_ID 
+			&& (po.is_ValueChanged("DocStatus") || po.is_ValueChanged("C_BPartner_Location_ID") || po.is_ValueChanged("C_Channel_ID"))
+		  ) 
 		{	
 			MOrder order = (MOrder)po;
-			/*if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("IP") == 0)
-			{	
-				//borrado de lineas ya calculadas 
-				String sql = "DELETE FROM C_OrderLine WHERE C_OrderLine_ID IN " +
-						" (SELECT C_OrderLine_ID FROM C_OrderLine WHERE C_Order_ID = " + order.get_ID()+
-						" AND C_Charge_ID IN ( SELECT C_Charge_ID FROM C_Charge cc INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
-						" WHERE ct.value IN ('TCFU','TCFP')))";
-				DB.executeUpdate(sql, po.get_TrxName());
-				//calculo de geozona
-				//MBPartnerLocation loc = new MBPartnerLocation(po.getCtx(), order.getC_BPartner_Location_ID(), po.get_TrxName());
-				//int ID_Geozone = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(gc.C_Geozone_ID) " +
-				//		"FROM C_GeozoneCities gc WHERE gc.C_City_ID = "+loc.get_ValueAsInt("C_City_ID")+" AND gc.IsActive = 'Y'");
-				//flete por unidad
-				//buscamos cantidad de productos por unidad
-				//ininoles se cambia codigo para que sean varios tipos de despacho por cantidad
-				//ininoles nuevocambio distintas direcciones de despacho
-				//if(ID_Geozone > 0)
-				//{
-					BigDecimal totalAmtQty = Env.ZERO;
-					String sqlQty = "SELECT SUM(qtyEntered) as qtyEntered, fc.value,loc.C_Geozone_ID  " +
-							" FROM C_OrderLine col " +
-							" INNER JOIN M_Product mp ON(col.M_Product_ID = mp.M_Product_ID) " +
-							" INNER JOIN M_FreightCategory fc ON(mp.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-							" INNER JOIN C_BPartner_Location loc ON (loc.C_BPartner_Location_ID = col.C_BPartner_Location_ID)" +
-							" WHERE fc.value LIKE 'CFPU%' AND C_Order_ID = ? GROUP BY fc.value, loc.C_Geozone_ID "; 
-					
-					PreparedStatement pstmt = null;
-					ResultSet rs = null;
-					try
-					{
-						pstmt = DB.prepareStatement(sqlQty, po.get_TrxName());
-						pstmt.setInt(1,order.get_ID());
-						rs = pstmt.executeQuery();
-						while(rs.next())
-						{
-							BigDecimal amtWeight = DB.getSQLValueBD(po.get_TrxName(), "SELECT MAX(amt) " +
-									" FROM M_FCategoryValues cv " +
-									" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-									" WHERE fc.value = '"+rs.getString("value")+"' AND ? BETWEEN qtymin AND qtymax AND C_Geozone_ID = "+rs.getInt("C_Geozone_ID"), rs.getBigDecimal("qtyEntered"));
-							if(amtWeight != null)
-								totalAmtQty = totalAmtQty.add(amtWeight);							
-						}
-						rs.close();
-						pstmt.close();
-						pstmt = null;
-					}
-					catch (SQLException e)
-					{
-						//throw new DBException(e, sql);
-						log.config(e.toString());
-					}
-					finally
-					{
-						DB.close(rs, pstmt);
-						rs = null; pstmt = null;
-					}		
-					if(totalAmtQty != null && totalAmtQty.compareTo(Env.ZERO) > 0)
-					{
-						//se genera linea con monto ya calculado
-						//buscamos cargo por peso
-						int ID_Charge = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(C_Charge_ID) " +
-								" FROM C_Charge cc " +
-								" INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
-								" WHERE ct.value = 'TCFU'");
-						if(ID_Charge > 0)
-						{
-							//MOrderLine oLine = new MOrderLine(po.getCtx(), 0, po.get_TrxName());
-							MOrderLine oLine = new MOrderLine(order);
-							oLine.setAD_Org_ID(order.getAD_Org_ID());
-							oLine.setC_BPartner_Location_ID(order.getC_BPartner_Location_ID());						
-							oLine.setC_Charge_ID(ID_Charge);
-							oLine.setQty(Env.ONE);
-							oLine.setPrice(totalAmtQty);
-							oLine.setDescription("Agregado Automatico. Flete por Cantidad");
-							//oLine.setTax();
-							oLine.save();
-							oLine.setLineNetAmt();						
-							oLine.save();
-						}	
-					}
-					//flete por peso
-					//buscamos peso de productos
-					//ininoles se cambia forma para tener varios tipos de despacho				
-					BigDecimal totalAmtWeight = Env.ZERO;
-					String sqlWeight = "SELECT SUM(qtyEntered * mp.weight) as weight, fc.value, loc.C_Geozone_ID " +
-							" FROM C_OrderLine col " +
-							" INNER JOIN M_Product mp ON(col.M_Product_ID = mp.M_Product_ID) " +
-							" INNER JOIN M_FreightCategory fc ON(mp.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-							" INNER JOIN C_BPartner_Location loc ON (loc.C_BPartner_Location_ID = col.C_BPartner_Location_ID) "+
-							" WHERE fc.value LIKE 'CFPP%' AND C_Order_ID = ? GROUP BY fc.value,loc.C_Geozone_ID";
-					PreparedStatement pstmtW = null;
-					ResultSet rsW = null;
-					try
-					{
-						pstmtW = DB.prepareStatement(sqlWeight, po.get_TrxName());
-						pstmtW.setInt(1, order.get_ID());
-						rsW = pstmtW.executeQuery();
-						while (rsW.next())
-						{
-							BigDecimal amtWeight = DB.getSQLValueBD(po.get_TrxName(), "SELECT MAX(amt) " +
-									" FROM M_FCategoryValues cv " +
-									" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-									" WHERE fc.value = '"+rsW.getString("value")+"' AND ? BETWEEN qtymin AND qtymax AND C_Geozone_ID = "+rsW.getInt("C_Geozone_ID"), rsW.getBigDecimal("weight"));
-							if(amtWeight != null)
-								totalAmtWeight = totalAmtWeight.add(amtWeight);							
-						}
-						rsW.close();
-						pstmtW.close();
-						pstmtW = null;
-					}
-					catch (SQLException e)
-					{
-						//throw new DBException(e, sql);
-						log.config(e.toString());
-					}
-					finally
-					{
-						DB.close(rsW, pstmtW);
-						rsW = null; pstmtW = null;
-					}		
-					if(totalAmtWeight != null && totalAmtWeight.compareTo(Env.ZERO) > 0)
-					{
-						//se genera linea con monto ya calculado
-						//buscamos cargo por peso
-						int ID_Chargew = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(C_Charge_ID) " +
-								" FROM C_Charge cc " +
-								" INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
-								" WHERE ct.value = 'TCFP'");
-						if(ID_Chargew > 0)
-						{
-							//MOrderLine oLine = new MOrderLine(po.getCtx(), 0, po.get_TrxName());
-							MOrderLine oLine = new MOrderLine(order);
-							oLine.setAD_Org_ID(order.getAD_Org_ID());
-							oLine.setC_BPartner_Location_ID(order.getC_BPartner_Location_ID());						
-							oLine.setC_Charge_ID(ID_Chargew);
-							oLine.setQty(Env.ONE);
-							oLine.setPrice(totalAmtWeight);
-							oLine.setDescription("Agregado Automatico. Flete por Peso");
-							//oLine.setTax();
-							oLine.save();
-							oLine.setLineNetAmt();						
-							oLine.save();
-						}	
-					}
-				//}
-			}*/
-			//llamamos metodo para actualizar
 			UpdateFreight(order);
 		}		
 		if((type == TYPE_AFTER_CHANGE || type == TYPE_AFTER_NEW) && po.get_Table_ID()==MOrderLine.Table_ID && (po.is_ValueChanged("C_BPartner_Location_ID") || po.is_ValueChanged("DeliveryViaRule"))) 
 		{
 			MOrderLine oLine = (MOrderLine)po;
-			//MOrder order = new MOrder(po.getCtx(), oLine.getC_Order_ID(), po.get_TrxName());
 			MOrder order = oLine.getParent();
-			UpdateFreight(order);
-		}
-		if((type == TYPE_AFTER_CHANGE || type == TYPE_AFTER_NEW) && po.get_Table_ID()==MOrder.Table_ID && po.is_ValueChanged("C_BPartner_Location_ID") ) 
-		{	
-			MOrder order = (MOrder)po;
 			UpdateFreight(order);
 		}
 		return null;
@@ -295,6 +145,78 @@ public class ModCOPESAFreightCategory implements ModelValidator
 		return sb.toString ();
 	}	//	toString
 	
+	
+	public void DeleteFreightLines(MOrder _order)
+	{
+		String sql = "DELETE FROM C_OrderLine WHERE C_OrderLine_ID IN " +
+				" (SELECT C_OrderLine_ID FROM C_OrderLine WHERE C_Order_ID = " + _order.get_ID()+
+				" AND C_Charge_ID IN ( SELECT C_Charge_ID FROM C_Charge cc INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
+				" WHERE ct.value IN ('TCFU','TCFP')))";
+		DB.executeUpdate(sql, _order.get_TrxName());
+	}
+	
+	public void UpdateOrderTotals(MOrder _order)
+	{
+		DB.executeUpdate(" UPDATE C_Order co SET TotalLines = " +
+				" (select ROUND(SUM(LineNetAmt)) from C_OrderLine where C_Order_ID=co.c_Order_ID) " +
+				" WHERE C_Order_ID = "+ _order.get_ID(), _order.get_TrxName());
+		
+		DB.executeUpdate(" UPDATE C_Order co SET GrandTotal = ROUND(TotalLines + " +
+				" (select SUM(TAXAMT) from C_OrderTax where C_Order_ID=co.c_Order_ID)) " +
+				" WHERE C_Order_ID = "+ _order.get_ID(), _order.get_TrxName());
+	}
+	
+	public BigDecimal getUnitFreightPrice(MOrder _order, String _freightName, Integer _Geozone)
+	{
+		return DB.getSQLValueBD(_order.get_TrxName(), "SELECT MAX(amt) " +
+				" FROM M_FCategoryValues cv " +
+				" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
+				" WHERE fc.value = '" +  _freightName + "' AND C_Geozone_ID = " + _Geozone);
+	}
+
+	public BigDecimal getUnitFreightMonthPrice(MOrder _order, String _freightName, Integer _Geozone)
+	{
+		return DB.getSQLValueBD(_order.get_TrxName(), "SELECT MAX(MonthlyAmount) " +
+				" FROM M_FCategoryValues cv " +
+				" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
+				" WHERE fc.value = '" +  _freightName + "' AND C_Geozone_ID = " + _Geozone);
+	}
+
+	public BigDecimal getWeightFreightPrice(MOrder _order, String _freightName, Integer _Geozone, BigDecimal _weight)
+	{
+		return DB.getSQLValueBD(_order.get_TrxName(), "SELECT MAX(amt) " +
+				" FROM M_FCategoryValues cv " +
+				" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
+				" WHERE fc.value = '"+ _freightName + "' AND ? BETWEEN qtymin AND qtymax AND C_Geozone_ID = " +
+				_Geozone, _weight);
+	}
+
+	public BigDecimal getWeightFreightMonthPrice(MOrder _order, String _freightName, Integer _Geozone, BigDecimal _weight)
+	{
+		return	DB.getSQLValueBD(_order.get_TrxName(), "SELECT MAX(MonthlyAmount) " +
+				" FROM M_FCategoryValues cv " +
+				" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
+				" WHERE fc.value = '"+ _freightName + "' AND ? BETWEEN qtymin AND qtymax AND C_Geozone_ID = " +
+				_Geozone, _weight);
+
+	}	
+	public int getUnitChargeId( MOrder _order )
+	{
+		return DB.getSQLValue(_order.get_TrxName(), "SELECT MAX(C_Charge_ID) " +
+				" FROM C_Charge cc " +
+				" INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
+				" WHERE ct.value = 'TCFU'");
+	}
+	
+	public int getWeightChargeId( MOrder _order )
+	{
+		return DB.getSQLValue(_order.get_TrxName(), "SELECT MAX(C_Charge_ID) " +
+				" FROM C_Charge cc " +
+				" INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
+				" WHERE ct.value = 'TCFP'");
+	}
+
+	
 	public void UpdateFreight(MOrder order)
 	{
 		if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("IP") == 0)
@@ -302,241 +224,158 @@ public class ModCOPESAFreightCategory implements ModelValidator
 			MPriceList pl = new MPriceList(order.getCtx(), order.getM_PriceList_ID(), order.get_TrxName());
 			if(!pl.get_ValueAsBoolean("NoFreight"))
 			{
-				//borrado de lineas ya calculadas 
-				String sql = "DELETE FROM C_OrderLine WHERE C_OrderLine_ID IN " +
-						" (SELECT C_OrderLine_ID FROM C_OrderLine WHERE C_Order_ID = " + order.get_ID()+
-						" AND C_Charge_ID IN ( SELECT C_Charge_ID FROM C_Charge cc INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
-						" WHERE ct.value IN ('TCFU','TCFP')))";
-				DB.executeUpdate(sql, order.get_TrxName());
+				DeleteFreightLines(order);
+				UpdateOrderTotals(order);
 				
-				DB.executeUpdate(" UPDATE C_Order co SET TotalLines = " +
-						" (select ROUND(SUM(LineNetAmt)) from C_OrderLine where C_Order_ID=co.c_Order_ID) " +
-						" WHERE C_Order_ID = "+order.get_ID(), order.get_TrxName());
-				
-				DB.executeUpdate(" UPDATE C_Order co SET GrandTotal = ROUND(TotalLines + " +
-						" (select SUM(TAXAMT) from C_OrderTax where C_Order_ID=co.c_Order_ID)) " +
-						" WHERE C_Order_ID = "+order.get_ID(), order.get_TrxName());
-				//ininoles se actualizan montos en caso que no se generen lineas
-				/*order.calculateTaxTotal();
-				order.save();*/
-				
-				//calculo de geozona
-				//MBPartnerLocation loc = new MBPartnerLocation(po.getCtx(), order.getC_BPartner_Location_ID(), po.get_TrxName());
-				//int ID_Geozone = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(gc.C_Geozone_ID) " +
-				//		"FROM C_GeozoneCities gc WHERE gc.C_City_ID = "+loc.get_ValueAsInt("C_City_ID")+" AND gc.IsActive = 'Y'");
-				//flete por unidad
-				//buscamos cantidad de productos por unidad
-				//ininoles se cambia codigo para que sean varios tipos de despacho por cantidad
-				//ininoles nuevocambio distintas direcciones de despacho
-				//if(ID_Geozone > 0)
-				//{
-					//BigDecimal totalAmtQty = Env.ZERO;
-					//BigDecimal totalAmtQtyPAT = Env.ZERO;
-				    //ininoles se cambia de donde sale la geozona- Geozonas Editoriales
-					String sqlQty = "SELECT SUM(qtyEntered) as qtyEntered, fc.value,cg.C_Geozone_ID,col.line,col.M_Product_ID, " +
-							" col.C_BPartner_Location_ID,col.C_OrderLine_ID " +
-							" FROM C_OrderLine col " +
-							" INNER JOIN M_Product mp ON(col.M_Product_ID = mp.M_Product_ID) " +
-							" INNER JOIN M_FreightCategory fc ON(mp.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-							" INNER JOIN C_BPartner_Location loc ON (loc.C_BPartner_Location_ID = col.C_BPartner_Location_ID)" +
-							" INNER JOIN C_GeozoneCities cgc ON (loc.C_City_ID = cgc.C_City_ID)"+
-							" INNER JOIN C_Geozone cg ON (cgc.C_Geozone_ID = cg.C_Geozone_ID AND type like 'E') "+
-							" WHERE fc.value LIKE 'CFPU%' " +
-							" AND (col.DeliveryViaRule NOT IN ('D','P') OR col.DeliveryViaRule IS NULL)" +
-							" AND C_Order_ID = ? GROUP BY fc.value, cg.C_Geozone_ID,col.C_BPartner_Location_ID,col.M_Product_ID,col.line,col.C_OrderLine_ID "; 
+				String sqlQty = "SELECT SUM(qtyEntered) as qtyEntered, fc.value,cg.C_Geozone_ID,col.line,col.M_Product_ID, " +
+						" col.C_BPartner_Location_ID,col.C_OrderLine_ID, col.datepromised2, col.datepromised3 " +
+						" FROM C_OrderLine col " +
+						" INNER JOIN M_Product mp ON(col.M_Product_ID = mp.M_Product_ID) " +
+						" INNER JOIN M_FreightCategory fc ON(mp.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
+						" INNER JOIN C_BPartner_Location loc ON (loc.C_BPartner_Location_ID = col.C_BPartner_Location_ID)" +
+						" INNER JOIN C_GeozoneCities cgc ON (loc.C_City_ID = cgc.C_City_ID)"+
+						" INNER JOIN C_Geozone cg ON (cgc.C_Geozone_ID = cg.C_Geozone_ID AND type like 'E') "+
+						" WHERE fc.value LIKE 'CFPU%' " +
+						" AND (col.DeliveryViaRule NOT IN ('D','P') OR col.DeliveryViaRule IS NULL)" +
+						" AND C_Order_ID = ? GROUP BY fc.value, cg.C_Geozone_ID,col.C_BPartner_Location_ID,col.M_Product_ID,col.line,col.C_OrderLine_ID "; 
 					
-					PreparedStatement pstmt = null;
-					ResultSet rs = null;
-					try
+				PreparedStatement pstmt = null;
+				ResultSet rs = null;
+				try
+				{
+					pstmt = DB.prepareStatement(sqlQty, order.get_TrxName());
+					pstmt.setInt(1,order.get_ID());
+					rs = pstmt.executeQuery();
+					while(rs.next())
 					{
-						pstmt = DB.prepareStatement(sqlQty, order.get_TrxName());
-						pstmt.setInt(1,order.get_ID());
-						rs = pstmt.executeQuery();
-						while(rs.next())
+						//se genera linea para ser usada despues
+						MOrderLine oLineShip = new MOrderLine(order.getCtx(), rs.getInt("C_OrderLine_ID"), order.get_TrxName());
+						
+						BigDecimal fprice = getUnitFreightPrice( order, rs.getString("value"), rs.getInt("C_Geozone_ID") );
+						BigDecimal fmonthprice = getUnitFreightMonthPrice( order, rs.getString("value"), rs.getInt("C_Geozone_ID") );
+						
+						if( fprice != null)
 						{
-							//se genera linea para ser usada despues
-							MOrderLine oLineShip = new MOrderLine(order.getCtx(), rs.getInt("C_OrderLine_ID"), order.get_TrxName());
+							//en vez de aumentar variable, se generan lineas 
+							fprice = fprice.multiply(rs.getBigDecimal("qtyEntered"));
+							fmonthprice = fmonthprice.multiply(rs.getBigDecimal("qtyEntered"));
+							int ID_Charge = getUnitChargeId(order); 
 							
-							/*BigDecimal amtWeight = DB.getSQLValueBD(order.get_TrxName(), "SELECT MAX(amt) " +
-									" FROM M_FCategoryValues cv " +
-									" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-									" WHERE fc.value = '"+rs.getString("value")+"' AND ? BETWEEN qtymin AND qtymax AND C_Geozone_ID = "+rs.getInt("C_Geozone_ID"), rs.getBigDecimal("qtyEntered"));*/
-							BigDecimal amtWeight = DB.getSQLValueBD(order.get_TrxName(), "SELECT MAX(amt) " +
-									" FROM M_FCategoryValues cv " +
-									" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-									" WHERE fc.value = '"+rs.getString("value")+"' AND C_Geozone_ID = "+rs.getInt("C_Geozone_ID"));
-							BigDecimal amtWeightPAT = DB.getSQLValueBD(order.get_TrxName(), "SELECT MAX(MonthlyAmount) " +
-									" FROM M_FCategoryValues cv " +
-									" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-									" WHERE fc.value = '"+rs.getString("value")+"' AND C_Geozone_ID = "+rs.getInt("C_Geozone_ID"));
-							if(amtWeight != null)
+							if(ID_Charge > 0)
 							{
-								//en vez de aumentar variable, se generan lineas 
-								amtWeight = amtWeight.multiply(rs.getBigDecimal("qtyEntered"));
-								//totalAmtQty = totalAmtQty.add(amtWeight);
-								/*if(amtWeightPAT != null)
-									totalAmtQtyPAT = totalAmtQtyPAT.add(amtWeightPAT);*/
-								amtWeightPAT = amtWeightPAT.multiply(rs.getBigDecimal("qtyEntered"));
-								
-								int ID_Charge = DB.getSQLValue(order.get_TrxName(), "SELECT MAX(C_Charge_ID) " +
-										" FROM C_Charge cc " +
-										" INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
-										" WHERE ct.value = 'TCFU'");
-								if(ID_Charge > 0)
-								{
-									//MOrderLine oLine = new MOrderLine(po.getCtx(), 0, po.get_TrxName());
-									MOrderLine oLine = new MOrderLine(order);
-									oLine.setAD_Org_ID(order.getAD_Org_ID());
-									oLine.setC_BPartner_Location_ID(order.getC_BPartner_Location_ID());						
-									oLine.setC_Charge_ID(ID_Charge);
-									oLine.setQty(Env.ONE);
-									oLine.setPrice(amtWeight);
-									oLine.setDescription("Agregado Automatico. Flete por Cantidad. Linea: "+rs.getInt("Line"));
-									//oLine.setTax();
-									oLine.save();
-									oLine.setLineNetAmt();
-									oLine.set_CustomColumn("DatePromised2",order.getDateOrdered());
-									oLine.set_CustomColumn("DatePromised3",order.getDateOrdered());
-									oLine.set_CustomColumn("MonthlyAmount",amtWeightPAT);
-									oLine.set_CustomColumn("m_productref_id",rs.getInt("M_Product_ID"));
-									//ininoles 04-04 nuevos campos pedidos por humberto
-									oLine.setC_BPartner_Location_ID(oLineShip.getC_BPartner_Location_ID());
-									oLine.set_CustomColumn("C_Geozone_ID",oLineShip.get_ValueAsInt("C_Geozone_ID"));
-									oLine.setC_BPartner_ID(oLineShip.getC_BPartner_ID());
-									//ininoles end 04-04
-									oLine.save();
-								}	
-							}
+								//MOrderLine oLine = new MOrderLine(po.getCtx(), 0, po.get_TrxName());
+								MOrderLine oLine = new MOrderLine(order);
+								oLine.setAD_Org_ID(order.getAD_Org_ID());
+								oLine.setC_BPartner_Location_ID(order.getC_BPartner_Location_ID());						
+								oLine.setC_Charge_ID(ID_Charge);
+								oLine.setQty(Env.ONE);
+								oLine.setPrice(fprice);
+								oLine.setDescription("Agregado Automatico. Flete por Cantidad. Linea: "+rs.getInt("Line"));
+								//oLine.setTax();
+								//oLine.save();
+								oLine.setLineNetAmt();
+								oLine.set_CustomColumn("DatePromised2",rs.getTimestamp("datepromised2")); 
+								oLine.set_CustomColumn("DatePromised3",rs.getTimestamp("datepromised3")); 
+								oLine.set_CustomColumn("MonthlyAmount",fmonthprice);
+								oLine.set_CustomColumn("m_productref_id",rs.getInt("M_Product_ID"));
+								//ininoles 04-04 nuevos campos pedidos por humberto
+								oLine.setC_BPartner_Location_ID(oLineShip.getC_BPartner_Location_ID());
+								oLine.set_CustomColumn("C_Geozone_ID",oLineShip.get_ValueAsInt("C_Geozone_ID"));
+								oLine.setC_BPartner_ID(oLineShip.getC_BPartner_ID());
+								//ininoles end 04-04
+								oLine.save();
+							}	
 						}
-						rs.close();
-						pstmt.close();
-						pstmt = null;
 					}
-					catch (SQLException e)
+					rs.close();
+					pstmt.close();
+					pstmt = null;
+				}
+				catch (SQLException e)
+				{
+					//throw new DBException(e, sql);
+					log.config(e.toString());
+				}
+				finally
+				{
+					DB.close(rs, pstmt);
+					rs = null; pstmt = null;
+				}
+				//flete por peso
+				//buscamos peso de productos
+				//ininoles se cambia forma para tener varios tipos de despacho
+				BigDecimal totalAmtWeight = Env.ZERO;
+				BigDecimal totalAmtWeightPAT = Env.ZERO;
+				//ininoles se cambia de donde sale la geozona - Geozonas ganchos
+				String sqlWeight = "SELECT SUM(qtyEntered * mp.weight) as weight, fc.value, cg.C_Geozone_ID, MAX(col.M_Product_ID) as M_Product_ID" +
+						" FROM C_OrderLine col " +
+						" INNER JOIN M_Product mp ON(col.M_Product_ID = mp.M_Product_ID) " +
+						" INNER JOIN M_FreightCategory fc ON(mp.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
+						" INNER JOIN C_BPartner_Location loc ON (loc.C_BPartner_Location_ID = col.C_BPartner_Location_ID) "+
+						" INNER JOIN C_GeozoneCities cgc ON (loc.C_City_ID = cgc.C_City_ID)"+
+						" INNER JOIN C_Geozone cg ON (cgc.C_Geozone_ID = cg.C_Geozone_ID AND type like 'G') "+
+						" WHERE fc.value LIKE 'CFPP%' " +
+						" AND (col.DeliveryViaRule NOT IN ('D','P') OR col.DeliveryViaRule IS NULL) " +
+						" AND C_Order_ID = ? GROUP BY fc.value,cg.C_Geozone_ID,col.C_BPartner_Location_ID ";
+				int ID_Prod = 0;
+				
+				PreparedStatement pstmtW = null;
+				ResultSet rsW = null;
+				try
+				{
+					pstmtW = DB.prepareStatement(sqlWeight, order.get_TrxName());
+					pstmtW.setInt(1, order.get_ID());
+					rsW = pstmtW.executeQuery();
+					while (rsW.next())
 					{
-						//throw new DBException(e, sql);
-						log.config(e.toString());
+						BigDecimal amtWeight = getWeightFreightPrice(order, rsW.getString("value"), rsW.getInt("C_Geozone_ID"), rsW.getBigDecimal("weight")); 
+						BigDecimal amtWeightPAT = getWeightFreightMonthPrice(order, rsW.getString("value"), rsW.getInt("C_Geozone_ID"), rsW.getBigDecimal("weight"));
+						if(amtWeight != null)
+							totalAmtWeight = totalAmtWeight.add(amtWeight);			
+						if(amtWeightPAT != null)
+							totalAmtWeightPAT = totalAmtWeightPAT.add(amtWeightPAT);
+						ID_Prod = rsW.getInt("M_Product_ID");
 					}
-					finally
-					{
-						DB.close(rs, pstmt);
-						rs = null; pstmt = null;
-					}
-					/*
-					if(totalAmtQty != null && totalAmtQty.compareTo(Env.ZERO) > 0)
-					{
-						//se genera linea con monto ya calculado
-						//buscamos cargo por peso
-						int ID_Charge = DB.getSQLValue(order.get_TrxName(), "SELECT MAX(C_Charge_ID) " +
-								" FROM C_Charge cc " +
-								" INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
-								" WHERE ct.value = 'TCFU'");
-						if(ID_Charge > 0)
-						{
-							//MOrderLine oLine = new MOrderLine(po.getCtx(), 0, po.get_TrxName());
-							MOrderLine oLine = new MOrderLine(order);
-							oLine.setAD_Org_ID(order.getAD_Org_ID());
-							oLine.setC_BPartner_Location_ID(order.getC_BPartner_Location_ID());						
-							oLine.setC_Charge_ID(ID_Charge);
-							oLine.setQty(Env.ONE);
-							oLine.setPrice(totalAmtQty);
-							oLine.setDescription("Agregado Automatico. Flete por Cantidad");
-							//oLine.setTax();
-							oLine.save();
-							oLine.setLineNetAmt();
-							oLine.set_CustomColumn("DatePromised2",order.getDateOrdered());
-							oLine.set_CustomColumn("DatePromised3",order.getDateOrdered());
-							oLine.set_CustomColumn("MonthlyAmount",totalAmtQtyPAT);
-							oLine.save();
-						}	
-					}*/
-					//flete por peso
-					//buscamos peso de productos
-					//ininoles se cambia forma para tener varios tipos de despacho
-					BigDecimal totalAmtWeight = Env.ZERO;
-					BigDecimal totalAmtWeightPAT = Env.ZERO;
-					//ininoles se cambia de donde sale la geozona - Geozonas ganchos
-					String sqlWeight = "SELECT SUM(qtyEntered * mp.weight) as weight, fc.value, cg.C_Geozone_ID, MAX(col.M_Product_ID) as M_Product_ID" +
-							" FROM C_OrderLine col " +
-							" INNER JOIN M_Product mp ON(col.M_Product_ID = mp.M_Product_ID) " +
-							" INNER JOIN M_FreightCategory fc ON(mp.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-							" INNER JOIN C_BPartner_Location loc ON (loc.C_BPartner_Location_ID = col.C_BPartner_Location_ID) "+
-							" INNER JOIN C_GeozoneCities cgc ON (loc.C_City_ID = cgc.C_City_ID)"+
-							" INNER JOIN C_Geozone cg ON (cgc.C_Geozone_ID = cg.C_Geozone_ID AND type like 'G') "+
-							" WHERE fc.value LIKE 'CFPP%' " +
-							" AND (col.DeliveryViaRule NOT IN ('D','P') OR col.DeliveryViaRule IS NULL) " +
-							" AND C_Order_ID = ? GROUP BY fc.value,cg.C_Geozone_ID,col.C_BPartner_Location_ID ";
-					int ID_Prod = 0;
+					rsW.close();
+					pstmtW.close();
+					pstmtW = null;
+				}
+				catch (SQLException e)
+				{
+					//throw new DBException(e, sql);
+					log.config(e.toString());
+				}
+				finally
+				{
+					DB.close(rsW, pstmtW);
+					rsW = null; pstmtW = null;
+				}		
+				if(totalAmtWeight != null && totalAmtWeight.compareTo(Env.ZERO) > 0)
+				{
+					//se genera linea con monto ya calculado
+					//buscamos cargo por peso
+					int ID_Chargew = getWeightChargeId(order);
 					
-					PreparedStatement pstmtW = null;
-					ResultSet rsW = null;
-					try
+					if(ID_Chargew > 0)
 					{
-						pstmtW = DB.prepareStatement(sqlWeight, order.get_TrxName());
-						pstmtW.setInt(1, order.get_ID());
-						rsW = pstmtW.executeQuery();
-						while (rsW.next())
-						{
-							BigDecimal amtWeight = DB.getSQLValueBD(order.get_TrxName(), "SELECT MAX(amt) " +
-									" FROM M_FCategoryValues cv " +
-									" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-									" WHERE fc.value = '"+rsW.getString("value")+"' AND ? BETWEEN qtymin AND qtymax AND C_Geozone_ID = "+rsW.getInt("C_Geozone_ID"), rsW.getBigDecimal("weight"));
-							BigDecimal amtWeightPAT = DB.getSQLValueBD(order.get_TrxName(), "SELECT MAX(MonthlyAmount) " +
-									" FROM M_FCategoryValues cv " +
-									" INNER JOIN M_FreightCategory fc ON(cv.M_FreightCategory_ID = fc.M_FreightCategory_ID) " +
-									" WHERE fc.value = '"+rsW.getString("value")+"' AND C_Geozone_ID = "+rsW.getInt("C_Geozone_ID"));
-							if(amtWeight != null)
-								totalAmtWeight = totalAmtWeight.add(amtWeight);			
-							if(amtWeightPAT != null)
-								totalAmtWeightPAT = totalAmtWeightPAT.add(amtWeightPAT);
-							ID_Prod = rsW.getInt("M_Product_ID");
-						}
-						rsW.close();
-						pstmtW.close();
-						pstmtW = null;
-					}
-					catch (SQLException e)
-					{
-						//throw new DBException(e, sql);
-						log.config(e.toString());
-					}
-					finally
-					{
-						DB.close(rsW, pstmtW);
-						rsW = null; pstmtW = null;
-					}		
-					if(totalAmtWeight != null && totalAmtWeight.compareTo(Env.ZERO) > 0)
-					{
-						//se genera linea con monto ya calculado
-						//buscamos cargo por peso
-						int ID_Chargew = DB.getSQLValue(order.get_TrxName(), "SELECT MAX(C_Charge_ID) " +
-								" FROM C_Charge cc " +
-								" INNER JOIN C_ChargeType ct ON (cc.C_ChargeType_ID = ct.C_ChargeType_ID) " +
-								" WHERE ct.value = 'TCFP'");
-						if(ID_Chargew > 0)
-						{
-							//MOrderLine oLine = new MOrderLine(po.getCtx(), 0, po.get_TrxName());
-							MOrderLine oLine = new MOrderLine(order);
-							oLine.setAD_Org_ID(order.getAD_Org_ID());
-							oLine.setC_BPartner_Location_ID(order.getC_BPartner_Location_ID());						
-							oLine.setC_Charge_ID(ID_Chargew);
-							oLine.setQty(Env.ONE);
-							oLine.setPrice(totalAmtWeight);
-							oLine.setDescription("Agregado Automatico. Flete por Peso");
-							//oLine.setTax();
-							oLine.save();
-							oLine.setLineNetAmt();
-							oLine.set_CustomColumn("DatePromised2",order.getDateOrdered());
-							oLine.set_CustomColumn("DatePromised3",order.getDateOrdered());
-							oLine.set_CustomColumn("MonthlyAmount",totalAmtWeightPAT);	
-							oLine.set_CustomColumn("m_productref_id",ID_Prod);
-							oLine.save();
-						}	
-					}
-				//}
-					//ininoles se actualizan montos en caso que no se generen lineas
-					//order.calculateTaxTotal();
-					//order.saveEx(order.get_TrxName());
+						//MOrderLine oLine = new MOrderLine(po.getCtx(), 0, po.get_TrxName());
+						MOrderLine oLine = new MOrderLine(order);
+						oLine.setAD_Org_ID(order.getAD_Org_ID());
+						oLine.setC_BPartner_Location_ID(order.getC_BPartner_Location_ID());						
+						oLine.setC_Charge_ID(ID_Chargew);
+						oLine.setQty(Env.ONE);
+						oLine.setPrice(totalAmtWeight);
+						oLine.setDescription("Agregado Automatico. Flete por Peso");
+						//oLine.setTax();
+						//oLine.save();
+						oLine.setLineNetAmt();
+						oLine.set_CustomColumn("DatePromised2",order.getDateOrdered());
+						oLine.set_CustomColumn("DatePromised3",order.getDateOrdered());
+						oLine.set_CustomColumn("MonthlyAmount",totalAmtWeightPAT);	
+						oLine.set_CustomColumn("m_productref_id",ID_Prod);
+						oLine.save();
+					}	
+				}
 			}
 		}
 	}
