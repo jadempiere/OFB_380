@@ -333,6 +333,9 @@ public class SubSalesRep extends PosSubPanel implements ActionListener
 		for (int i = 0; i < oLines2.length; i++)
 		{
 			MOrderLine line = oLines2[i];
+			if( line.get_ValueAsBoolean("IsConfirmed") )
+				continue;
+				
 			if(line.getM_Product_ID() > 0)
 			{
 				if(line.getM_Product().getProductType().compareToIgnoreCase("I")==0)
