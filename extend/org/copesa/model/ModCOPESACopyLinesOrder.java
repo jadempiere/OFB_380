@@ -78,7 +78,8 @@ public class ModCOPESACopyLinesOrder implements ModelValidator
 		if((type == TYPE_BEFORE_NEW || type == TYPE_BEFORE_CHANGE)&& po.get_Table_ID()==MOrderLine.Table_ID) 
 		{	
 			MOrderLine oLine = (MOrderLine)po;
-			MOrder order = new MOrder(po.getCtx(), oLine.getC_Order_ID(), po.get_TrxName());
+			//MOrder order = new MOrder(po.getCtx(), oLine.getC_Order_ID(), po.get_TrxName());
+			MOrder order = oLine.getParent();
 			if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("CO") != 0
 					&& !oLine.get_ValueAsBoolean("IsFree") && oLine.getRef_OrderLine_ID() > 0)
 			{
