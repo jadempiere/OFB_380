@@ -90,7 +90,7 @@ public class ModCOPESAValidZoneSec implements ModelValidator
 				int cant = DB.getSQLValue(po.get_TrxName(), "SELECT COUNT(1) " +
 						" FROM C_OrderLine ol " +
 						" INNER JOIN C_BPartner_Location bpl ON (ol.C_BPartner_Location_ID = bpl.C_BPartner_Location_ID) " +
-						" WHERE (ZONE IS NULL OR (Sector IS NULL OR Sector = 0)) " +
+						" WHERE (ZONE IS NULL OR Sector IS NULL) " +
 						" AND C_order_ID = "+order.get_ID());
 				if(cant > 1)
 					return "Error: Direccion sin Zona/Sector. Favor Genere un Ticket";

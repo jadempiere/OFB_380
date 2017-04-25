@@ -228,7 +228,7 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 					int cantNoZoneSec = DB.getSQLValue(get_TrxName(), "SELECT COUNT(1) " +
 							" FROM C_OrderLine ol " +
 							" INNER JOIN C_BPartner_Location bpl ON (ol.C_BPartner_Location_ID = bpl.C_BPartner_Location_ID) " +
-							" WHERE (ZONE IS NULL OR (Sector IS NULL OR Sector = 0)) " +
+							" WHERE (ZONE IS NULL OR Sector IS NULL) " +
 							" AND ol.IsActive = 'Y' AND C_order_ID = "+order.get_ID());
 					if(cantNoZoneSec > 0)
 					{
