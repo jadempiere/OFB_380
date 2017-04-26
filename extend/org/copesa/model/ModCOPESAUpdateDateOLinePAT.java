@@ -18,6 +18,7 @@ package org.copesa.model;
 
 import java.sql.Timestamp;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import org.compiere.model.MClient;
 import org.compiere.model.MOrder;
@@ -90,21 +91,9 @@ public class ModCOPESAUpdateDateOLinePAT implements ModelValidator
 					MOrderLine line = oLines[i];
 					if(!line.get_ValueAsBoolean("IsFree"))
 					{	
-						//Timestamp dateEnd = (Timestamp)line.get_Value("DatePromised3");
-						Timestamp dateEnd = order.getDatePromised();
-						Timestamp newDateEnd = null;
-						if(dateEnd == null)
-						{
-							Calendar calendar = Calendar.getInstance();
-							calendar.set(3022, 31, 12);
-							newDateEnd = new Timestamp(calendar.getTimeInMillis());
-						}else
-						{
-							Calendar calendar = Calendar.getInstance();
-							calendar.set(3022, dateEnd.getMonth(), dateEnd.getDate());
-							newDateEnd = new Timestamp(calendar.getTimeInMillis());
-						}
-						if(newDateEnd != null)
+						Calendar calendar = new GregorianCalendar(3022, 0, 1);
+						Timestamp newDateEnd = new Timestamp(calendar.getTimeInMillis());
+						if(newDateEnd != null && newDateEnd.after( (Timestamp)line.get_Value("DatePromised3")) ) 
 						{
 							line.setIsActive(true);
 							line.set_CustomColumn("DatePromised3", newDateEnd);

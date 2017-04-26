@@ -18,10 +18,7 @@ package org.copesa.process;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.Calendar;
 import java.util.logging.Level;
-
-import javax.swing.JOptionPane;
 
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MOrder;
@@ -133,31 +130,7 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 							throw new AdempiereException("Error: Termino de pago necesita HES/OC");
 						}
 					}
-					//ModCOPESAOrderQtyAvailable
-					//06-04-2017 validacion de stock solo en el POS
-					/*
-					MOrderLine[] oLines2 = order.getLines(false, null);
-					for (int i = 0; i < oLines2.length; i++)
-					{
-						MOrderLine line = oLines2[i];
-						if(line.getM_Product_ID() > 0)
-						{
-							
-							//BigDecimal qty = DB.getSQLValueBD(get_TrxName(), "SELECT bomqtyavailable("+line.getM_Product_ID()+","+order.getM_Warehouse_ID()+",0)"+
-							//		" FROM M_Product WHERE M_Product_ID = "+line.getM_Product_ID());
-							//@mfrojas se cambia select
-							//@mfrojas primero se verifica que el producto sea de tipo "articulo"
-							if(line.getM_Product().getProductType().compareToIgnoreCase("I")==0)
-							{	
-								//ininoles nueva validacion de stock en base a nuevas funciones para copesa
-								BigDecimal qty = DB.getSQLValueBD(get_TrxName(),"select bomqtyavailablecopesa("+line.getM_Product_ID()+","+order.getM_Warehouse_ID()+","+line.get_ValueAsInt("M_Locator_ID")+")");
-								//if(qty.compareTo(line.getQtyEntered())<0)
-								if(qty.compareTo(Env.ZERO)<=0)
-									throw new AdempiereException("Error de Stock: Producto "+line.getM_Product().getName()+" sin stock suficiente "+qty);
-							}
-						}
-					}*/
-					//ModCOPESAOrderSameLocator
+
 					MPriceList pList = new MPriceList(getCtx(), order.getM_PriceList_ID(),get_TrxName());
 					boolean ISSameBPLocator = pList.get_ValueAsBoolean("IsSameBPLocator");
 					if(ISSameBPLocator)
@@ -282,39 +255,25 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 					//--
 					
 					//FIN VALIDACIONES
-					if(order.get_ValueAsString("TypePaymentRule").compareTo("C") == 0
-							&& order.get_ValueAsString("RequiresApprovalList") != null 
-							&& order.get_ValueAsString("RequiresApprovalList").compareTo("WA") != 0)
-					{
-						order.set_CustomColumn("RequiresApprovalList", "WA");	
-						order.setProcessed(true);
-						order.save();
-						commitEx();
-						//return "Se Necesita Aprobación";
-						throw new AdempiereUserError("Se Necesita Aprobación");
-					}					
-					else if(rol.get_ValueAsBoolean("OrderApprobal") == false
-							&& reqApproval(order) == true)
-					{
-						//order.set_CustomColumn("ISRequiresApproval", true);
-						order.set_CustomColumn("RequiresApprovalList", "WA");	
-						order.setProcessed(true);
-						order.save();
-						commitEx();
-						//return "Se Necesita Aprobación";
-						throw new AdempiereUserError("Se Necesita Aprobación");
-					}
-					else 
+					// Ahora pasa todo a validación de backoffice, a menos que sea un rol que inmediatamente deja aprobado al completar
+					if( rol.get_ValueAsBoolean("OrderApprobal") )
 					{
 						order.setDocStatus("IP");						
 						//fecha se actualiza solo antes de completar
 						order.set_CustomColumn("DateCompleted", hoy);
-						//order.save();
-						//end
 						order.set_CustomColumn("RequiresApprovalList", null);
 						order.setDocAction("CO");
-						order.save();
+						//order.save();
 						order.processIt("CO");
+					}					
+					else 
+					{
+						order.set_CustomColumn("RequiresApprovalList", "WA");	
+						order.setProcessed(true);
+						order.save();
+						commitEx();
+						//return "Se Necesita Aprobación";
+						throw new AdempiereException("Se Necesita Aprobación");
 					}
 				}
 				else if(p_DocStatus.compareTo("VO") == 0)

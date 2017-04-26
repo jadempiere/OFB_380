@@ -109,7 +109,8 @@ public class ModCOPESAUpdateShipLine implements ModelValidator
 						}
 						//actualizar metodo de la linea
 						//DB.executeUpdate("UPDATE C_OrderLine SET DeliveryViaRule = '"+delivery+"' WHERE C_OrderLine_ID = "+oLine.get_ID(), po.get_TrxName());
-						if(delivery != null && delivery != "" && delivery.trim().length() > 0)
+						String olddelivery = oLine.get_ValueAsString("DeliveryViaRule");
+						if(delivery != null && delivery != "" && delivery.trim().length() > 0 && delivery.compareTo(olddelivery) != 0)
 						{
 							oLine.set_CustomColumn("DeliveryViaRule", delivery);
 							oLine.save();
@@ -139,7 +140,7 @@ public class ModCOPESAUpdateShipLine implements ModelValidator
 						" FROM M_ProductPrice pp " +
 						" INNER JOIN M_PriceList_Version plv ON (pp.M_PriceList_Version_ID = plv.M_PriceList_Version_ID) " +
 						" WHERE pp.IsActive = 'Y' AND pp.M_Product_ID = "+oLine.getM_Product_ID()+
-						" AND M_PriceList_ID = "+oLine.getC_Order().getM_PriceList_ID());
+						" AND M_PriceList_ID = "+ oLine.getParent().getM_PriceList_ID());    //oLine.getC_Order().getM_PriceList_ID());
 				if(movDate != null)
 				{
 					//hacemos validacion primero
