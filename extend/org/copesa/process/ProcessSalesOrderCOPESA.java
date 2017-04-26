@@ -265,6 +265,7 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 						order.setDocAction("CO");
 						//order.save();
 						order.processIt("CO");
+						order.save();	
 					}					
 					else 
 					{
@@ -283,6 +284,7 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 					order.set_CustomColumn("RequiresApprovalList", null);
 					order.save();
 					order.processIt("VO");
+					order.save();	
 				}
 				else if(p_DocStatus.compareTo("IN") == 0)
 				{
@@ -290,9 +292,9 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 					order.setDocStatus("IN");
 					//order.set_CustomColumn("ISRequiresApproval", false);		
 					order.set_CustomColumn("RequiresApprovalList", "RE");	
+					order.save();		
 				}
 			}
-			order.save();		
 		}
 		return "Procesado";
 	}	//	doIt
