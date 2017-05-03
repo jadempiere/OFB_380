@@ -95,6 +95,8 @@ public class ModCOPESAOrderQtyAvailable implements ModelValidator
 				for (int i = 0; i < oLines.length; i++)
 				{
 					MOrderLine line = oLines[i];
+					if (line.get_ValueAsBoolean("isconfirmed"))
+						continue;
 					if(line.getM_Product_ID() > 0)
 					{
 						//BigDecimal qty = DB.getSQLValueBD(po.get_TrxName(), "SELECT bomqtyavailable(M_Product_ID,"+order.getM_Warehouse_ID()+",0)"+
