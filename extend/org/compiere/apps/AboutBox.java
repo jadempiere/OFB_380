@@ -47,7 +47,7 @@ public final class AboutBox extends CDialog implements ActionListener
 	 * 
 	 */
 	private static final long serialVersionUID = -5126987147443121045L;
-	public static final String OFBVersion="OFBConsulting 38.A_HCe";
+	public static final String OFBVersion="OFBConsulting 38.A_HCf";
 
 	/**
 	 *	Constructor for modal about dialog
