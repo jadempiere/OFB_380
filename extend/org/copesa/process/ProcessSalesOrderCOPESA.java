@@ -28,6 +28,7 @@ import org.compiere.model.MRole;
 import org.compiere.process.ProcessInfoParameter;
 import org.compiere.process.SvrProcess;
 import org.compiere.util.AdempiereUserError;
+import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.copesa.utils.DateUtils;
@@ -264,14 +265,17 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 						order.set_CustomColumn("RequiresApprovalList", null);
 						order.setDocAction("CO");
 						//order.save();
-						order.processIt("CO");
-						order.save();	
+						if ( !order.processIt("CO") )
+							throw new AdempiereException( order.getProcessMsg() );
+						if( !order.save() )
+							throw new AdempiereException(log.retrieveErrorString("ERROR: No se pudo guardar"));
 					}					
 					else 
 					{
 						order.set_CustomColumn("RequiresApprovalList", "WA");	
 						order.setProcessed(true);
-						order.save();
+						if( !order.save() )
+							throw new AdempiereException(log.retrieveErrorString("ERROR: No se pudo guardar"));
 						commitEx();
 						//return "Se Necesita Aprobación";
 						throw new AdempiereException("Se Necesita Aprobación");
