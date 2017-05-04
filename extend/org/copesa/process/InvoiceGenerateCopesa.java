@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.util.Calendar;
 import java.util.logging.Level;
 
 import org.adempiere.exceptions.AdempiereException;
@@ -113,15 +112,6 @@ public class InvoiceGenerateCopesa extends SvrProcess
 		//validacion fecha fin de orden debe ser igual o menor a fecha de facturación 
 		if(p_DateOrdered_To != null && p_DateOrdered_To.compareTo(p_DateInvoiced) > 0)
 			throw new AdempiereException("Error: Fecha nota de venta no puede ser mayor a fecha facturación");
-		
-		//Validación que fecha debe ser mayor a hoy
-		Calendar calendar = Calendar.getInstance();
-		Timestamp hoy = new Timestamp(calendar.getTimeInMillis());
-		//dejamos solo la fecha
-		hoy.setHours(0);
-		hoy.setMinutes(0);
-		hoy.setSeconds(0);
-		hoy.setNanos(0);
 		
 		String sql = null;
 		//generacion de facturas no PAT
@@ -216,8 +206,6 @@ public class InvoiceGenerateCopesa extends SvrProcess
 			while (rs.next ())
 			{
 				MOrder order = new MOrder (getCtx(), rs.getInt("C_Order_ID"), get_TrxName());
-				if(order.get_ID() == 2001834)
-					log.config("log");
 				// se actualiza programa de facturación
 				createLinePATView(order, rs.getTimestamp("DateEnd"),rs.getInt("C_DocType_ID"));
 				if(m_invoice != null)
@@ -291,19 +279,6 @@ public class InvoiceGenerateCopesa extends SvrProcess
 		m_line = 0;
 	}	//	completeInvoice
 	
-	private boolean tieneGancho(MOrder order)
-	{
-		int cant = DB.getSQLValue(get_TrxName(), "SELECT COUNT(1) FROM C_OrderLine ol " +
-				" INNER JOIN M_Product mp ON (ol.M_Product_ID = mp.M_Product_ID) " +
-				" INNER JOIN M_Product_Category pc ON (mp.M_Product_Category_ID = pc.M_Product_Category_ID) " +
-				" WHERE C_Order_ID = "+order.get_ID()+
-				" AND upper(pc.value) like '%NOEDI%' ");
-		if(cant > 0)
-			return true;
-		else
-			return false;
-	}
-
 	private void createLinePATView(MOrder order,  Timestamp dateInvoiced, int ID_DocType)
 	{	
 		if (m_invoice == null)

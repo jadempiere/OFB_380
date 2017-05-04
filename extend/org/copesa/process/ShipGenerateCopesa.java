@@ -110,26 +110,26 @@ public class ShipGenerateCopesa extends SvrProcess
 			int LastShipper_ID = 0;
 			int LastBPartner_ID = 0;
 			int LastBPartnertLoc_ID = 0;
-			Timestamp LastmovDate = null;
+			long LastmovDate = 0;
 			MInOut ship = null;
 			boolean createShip = true;
 			while (rsGancho.next())
 			{
 				MOrderLine oLine = new MOrderLine(getCtx(), rsGancho.getInt("C_OrderLine_ID"), get_TrxName());
-				MOrder order = new MOrder(getCtx(), oLine.getC_Order_ID(), get_TrxName());				
+				MOrder order = oLine.getParent();				
 				//creamos guia si es nula
 				if(LastShipper_ID != oLine.get_ValueAsInt("M_Shipper_ID") || 
 						LastOrder_ID != oLine.getC_Order_ID() ||
 						LastBPartner_ID != oLine.get_ValueAsInt("C_BpartnerRef_ID") ||
 						LastBPartnertLoc_ID != oLine.get_ValueAsInt("C_Bpartner_Location_ID") ||
-						LastmovDate != (Timestamp)oLine.get_Value("MovementDate")
+						LastmovDate!= ((Timestamp)oLine.get_Value("MovementDate")).getTime()
 						)
 				{
 					LastShipper_ID = oLine.get_ValueAsInt("M_Shipper_ID");
 					LastOrder_ID = oLine.getC_Order_ID();
 					LastBPartner_ID = oLine.get_ValueAsInt("C_BpartnerRef_ID");
 					LastBPartnertLoc_ID = oLine.get_ValueAsInt("C_Bpartner_Location_ID");
-					LastmovDate = (Timestamp)oLine.get_Value("MovementDate");					
+					LastmovDate = ((Timestamp)oLine.get_Value("MovementDate")).getTime();					
 					createShip = true;
 				}			
 				if(createShip)
@@ -150,11 +150,7 @@ public class ShipGenerateCopesa extends SvrProcess
 				ioLine.setM_Product_ID(oLine.getM_Product_ID());
 				ioLine.setQty(oLine.getQtyEntered());
 				ioLine.setC_OrderLine_ID(oLine.get_ID());
-				int ID_Locator = DB.getSQLValue(get_TrxName(), "SELECT MAX(M_Locator_ID) FROM M_Locator WHERE IsActive = 'Y' AND M_Warehouse_ID = "+ship.getM_Warehouse_ID());
-				if(ID_Locator  > 0)
-					ioLine.setM_Locator_ID(ID_Locator);
-				else
-					ioLine.setM_Locator_ID(2000002);
+				ioLine.setM_Locator_ID(oLine.get_ValueAsInt("M_Locator_ID"));
 				ioLine.save();
 				m_line++;
 			}
