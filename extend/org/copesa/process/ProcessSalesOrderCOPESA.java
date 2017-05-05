@@ -83,14 +83,10 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 		{
 			//ininoles validaciones de campo 
 			validFields(order);
-			//ininoles
-			//order.set
-			//ininoles seteo de fechas antes de validación
 			order.set_CustomColumn("DateCompleted", instant);
 			order.setDateOrdered(instant);
 			//ininoles end
 			MRole rol = new MRole(getCtx(), Env.getAD_Role_ID(getCtx()), get_TrxName());
-			//boolean IsReq = reqApproval(order);
 			if(order.isSOTrx())
 			{
 				if(p_DocStatus.compareTo("CO") == 0)
