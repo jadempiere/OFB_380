@@ -53,12 +53,12 @@ public class InvoiceGenerateCopesa extends SvrProcess
 	private String		p_docAction = DocAction.ACTION_Complete;
 	
 	/**	The current Invoice	*/
-	private MInvoice 	m_invoice = null;
+	//private MInvoice 	m_invoice = null;
 	/**	The current Shipment	*/
 	/** Number of Invoices		*/
 	private int			m_created = 0;
 	/**	Line Number				*/
-	private int			m_line = 0;
+	//private int			m_line = 0;
 	/**
 	 *  Prepare - e.g., get Parameters.
 	 */
@@ -105,80 +105,18 @@ public class InvoiceGenerateCopesa extends SvrProcess
 	 */
 	protected String doIt () throws Exception
 	{
-		log.info("DateInvoiced=" + p_DateInvoiced
-			+ ",C_BPartner_ID=" + p_C_BPartner_ID
-			+ ", C_Order_ID=" + p_C_Order_ID + ", DocAction=" + p_docAction);
+		log.info("DateInvoiced=" + p_DateInvoiced + ",C_BPartner_ID=" + p_C_BPartner_ID	+ ", C_Order_ID=" + p_C_Order_ID + ", DocAction=" + p_docAction);
 		//
 		//validacion fecha fin de orden debe ser igual o menor a fecha de facturación 
 		if(p_DateOrdered_To != null && p_DateOrdered_To.compareTo(p_DateInvoiced) > 0)
 			throw new AdempiereException("Error: Fecha nota de venta no puede ser mayor a fecha facturación");
 		
 		String sql = null;
-		//generacion de facturas no PAT
-		sql = "SELECT * FROM C_Order o "
-			//+ "WHERE DocStatus IN('CO','CL') AND IsSOTrx='Y' AND PaymentRule <> 'D' ";
-			+ "WHERE DocStatus IN('CO','CL') AND IsSOTrx='Y' AND PaymentRule NOT IN ('D','C') ";
-		if (p_C_BPartner_ID != 0)
-			sql += " AND C_BPartner_ID=?";
-		if (p_C_Order_ID != 0)
-			sql += " AND C_Order_ID=?";
-		if (p_DateOrdered != null && p_DateOrdered_To != null)
-			sql += " AND o.DateOrdered BETWEEN ? AND ? ";
-		//
-		sql += " AND EXISTS (SELECT * FROM C_OrderLine ol "
-			+ "WHERE o.C_Order_ID=ol.C_Order_ID AND ol.QtyOrdered<>ol.QtyInvoiced) "
-			+ "AND o.C_DocType_ID IN (SELECT C_DocType_ID FROM C_DocType "
-			+ "WHERE DocBaseType='SOO' AND DocSubTypeSO NOT IN ('ON','OB','WR')) "
-			+ "ORDER BY M_Warehouse_ID, C_BPartner_ID, Bill_Location_ID, C_Order_ID";
-		
 		PreparedStatement pstmt = null;
-		try
-		{
-			//mfrojas
-			log.config("sql select facturas "+sql);
-			pstmt = DB.prepareStatement (sql, get_TrxName());
-			int index = 1;
-			if (p_C_BPartner_ID != 0)
-				pstmt.setInt(index++, p_C_BPartner_ID);
-			if (p_C_Order_ID != 0)
-				pstmt.setInt(index++, p_C_Order_ID);
-			if (p_DateOrdered != null && p_DateOrdered_To != null)
-			{
-				pstmt.setTimestamp(index++, p_DateOrdered);
-				pstmt.setTimestamp(index++, p_DateOrdered_To);
-			}
-			ResultSet rs = pstmt.executeQuery ();
-			while (rs.next ())
-			{
-				MOrder order = new MOrder (getCtx(), rs, get_TrxName());
-				MOrderLine[] oLines = order.getLines(true, null);
-				log.config("lineas "+oLines.length);
-				for (int i = 0; i < oLines.length; i++)
-				{
-					MOrderLine oLine = oLines[i];
-					BigDecimal toInvoice = oLine.getQtyOrdered().subtract(oLine.getQtyInvoiced());
-					if (toInvoice.compareTo(Env.ZERO) == 0 && oLine.getM_Product_ID() != 0)
-						continue;
-					BigDecimal qtyEntered = toInvoice;
-					createLine (order, oLine, toInvoice, qtyEntered);
-					
-				}
-				completeInvoice();
-				//m_created++;
-			}	//	for all orders
-			rs.close ();
-			pstmt.close ();
-			pstmt = null;		
-			rs = null;
-		}
-		catch (Exception e)
-		{
-			log.log(Level.SEVERE, sql, e);
-		}		
 
-		sql = "SELECT opc.C_Order_ID,opc.DateEnd,C_OrderPayCalendar_ID, opc.C_DocType_ID FROM C_OrderPayCalendar opc " +
+		sql = "SELECT opc.C_Order_ID,opc.DateEnd,C_OrderPayCalendar_ID, opc.C_DocType_ID as F_DocType_ID, opc.periodno, co.* FROM C_OrderPayCalendar opc " +
 			 " INNER JOIN C_Order co ON (opc.C_Order_ID = co.C_Order_ID) " +
-			 " WHERE co.DocStatus IN('CO','CL') AND co.IsSOTrx='Y' AND co.PaymentRule IN ('D','C') AND opc.IsInvoiced <> 'Y' ";
+			 " WHERE co.DocStatus IN('CO','CL') AND co.IsSOTrx='Y' AND opc.IsInvoiced <> 'Y' ";
 		if (p_C_BPartner_ID != 0)
 				sql += " AND co.C_BPartner_ID = ?";	 
 		if (p_C_Order_ID != 0)
@@ -188,7 +126,6 @@ public class InvoiceGenerateCopesa extends SvrProcess
 			sql += " AND opc.DateEnd BETWEEN ? AND ? ";
 		}
 		
-		pstmt = null;
 		try
 		{
 			pstmt = DB.prepareStatement (sql, get_TrxName());
@@ -203,22 +140,24 @@ public class InvoiceGenerateCopesa extends SvrProcess
 				pstmt.setTimestamp(index++, p_DateOrdered_To);
 			}
 			ResultSet rs = pstmt.executeQuery();
+			long firstInvoice = 0;
+			long lastInvoice = 0;
 			while (rs.next ())
 			{
-				MOrder order = new MOrder (getCtx(), rs.getInt("C_Order_ID"), get_TrxName());
-				// se actualiza programa de facturación
-				createLinePATView(order, rs.getTimestamp("DateEnd"),rs.getInt("C_DocType_ID"));
-				if(m_invoice != null)
+				MOrder order = new MOrder(getCtx(), rs, get_TrxName() );
+				MInvoice inv = createInvoice(order, rs.getTimestamp("DateEnd"),rs.getInt("F_DocType_ID"), rs.getInt("C_OrderPayCalendar_ID"), rs.getInt("periodno"));
+				if( inv != null )
 				{
-					DB.executeUpdate("UPDATE C_OrderPayCalendar SET IsInvoiced = 'Y', C_Invoice_ID = "+m_invoice.get_ID()+" " +
-							" WHERE C_OrderPayCalendar_ID = "+rs.getInt("C_OrderPayCalendar_ID"), get_TrxName());
+					lastInvoice = inv.getC_Invoice_ID();
+					if (firstInvoice == 0)
+					    firstInvoice = lastInvoice;
+					completeInvoice(inv);
 				}
-				completeInvoice();
 			}	//	for all orders
 			rs.close ();
 			pstmt.close ();
 			pstmt = null;			
-			
+			UpdateOrderPayCalendar(firstInvoice, lastInvoice);
 		}
 		catch (Exception e)
 		{
@@ -229,37 +168,10 @@ public class InvoiceGenerateCopesa extends SvrProcess
 	}	//	doIt
 		
 	
-	/**************************************************************************
-	 * 	Create Invoice Line from Order Line
-	 *	@param order order
-	 *	@param orderLine line
-	 *	@param qtyInvoiced qty
-	 *	@param qtyEntered qty
-	 */
-	private void createLine (MOrder order, MOrderLine orderLine, 
-		BigDecimal qtyInvoiced, BigDecimal qtyEntered)
-	{
-		if (m_invoice == null)
-		{
-			m_invoice = new MInvoice (order, 0, order.getDateOrdered());
-			if (!m_invoice.save())
-				throw new IllegalStateException("Could not create Invoice (o)");
-		}
-		//	
-		MInvoiceLine line = new MInvoiceLine (m_invoice);
-		line.setOrderLine(orderLine);
-		line.setQtyInvoiced(qtyInvoiced);
-		line.setQtyEntered(qtyEntered);
-		line.setLine(m_line + orderLine.getLine());
-		if (!line.save())
-			throw new IllegalStateException("Could not create Invoice Line (o)");
-		log.fine(line.toString());
-	}	//	createLine
-	
 	/**
 	 * 	Complete Invoice
 	 */
-	private void completeInvoice()
+	private void completeInvoice(MInvoice m_invoice)
 	{
 		if (m_invoice != null)
 		{
@@ -276,29 +188,25 @@ public class InvoiceGenerateCopesa extends SvrProcess
 			m_created++;
 		}
 		m_invoice = null;
-		m_line = 0;
 	}	//	completeInvoice
 	
-	private void createLinePATView(MOrder order,  Timestamp dateInvoiced, int ID_DocType)
-	{	
-		if (m_invoice == null)
+	private MInvoice createInvoice(MOrder order,  Timestamp dateInvoiced, int ID_DocType, int C_OrderPayCalendar_ID, int _periodno)
+	{
+		MInvoice m_invoice = new MInvoice (order, 0, dateInvoiced);
+		if(ID_DocType > 0)
 		{
-			m_invoice = new MInvoice (order, 0, dateInvoiced);
-			if(ID_DocType > 0)
-			{
-				m_invoice.setC_DocType_ID(ID_DocType);
-				m_invoice.setC_DocTypeTarget_ID(ID_DocType);
-			}
-			if (!m_invoice.save())
-				throw new IllegalStateException("Could not create Invoice (o)");
+			m_invoice.setC_DocType_ID(ID_DocType);
+			m_invoice.setC_DocTypeTarget_ID(ID_DocType);
+			m_invoice.set_CustomColumn("C_OrderPayCalendar_ID", C_OrderPayCalendar_ID);
 		}
-		//
-		String sqlDet = "SELECT * FROM co_factcalendar WHERE C_Order_ID = ? AND ? BETWEEN DateStart AND DateEnd";
+		if (!m_invoice.save())
+			throw new IllegalStateException("Could not create Invoice (o)");
+		String sqlDet = "SELECT * FROM co_factcalendar WHERE C_Order_ID = ? AND periodno = ?";
 		try 
 		{
 			PreparedStatement pstmtLine = DB.prepareStatement (sqlDet, get_TrxName());
 			pstmtLine.setInt(1, order.get_ID());
-			pstmtLine.setTimestamp(2, dateInvoiced);		
+			pstmtLine.setInt(2, _periodno);		
 			ResultSet rsLine = pstmtLine.executeQuery();
 			while (rsLine.next())
 			{
@@ -316,8 +224,19 @@ public class InvoiceGenerateCopesa extends SvrProcess
 		} 
 		catch (Exception e) {
 			log.config("Error al generar linea:"+e.toString());
+			return null;
 		}
+		return m_invoice;
 				
 	}	//	createLine
+
+	private void UpdateOrderPayCalendar(long _firstInvoice, long _lastInvoice)
+	{
+		String sql = "UPDATE C_OrderPayCalendar as opc set C_Invoice_ID = inv.C_Invoice_ID, IsInvoiced = 'Y' ";
+		sql += "FROM C_Invoice inv where opc.C_OrderPayCalendar_ID = inv.C_OrderPayCalendar_ID ";
+		sql += " AND inv.C_Invoice_ID BETWEEN " + _firstInvoice + " AND " + _lastInvoice;
+		
+		DB.executeUpdate(sql, get_TrxName());
+	}
 	
 }	//	InvoiceGenerate

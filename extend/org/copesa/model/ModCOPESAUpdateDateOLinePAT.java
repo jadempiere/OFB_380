@@ -93,12 +93,9 @@ public class ModCOPESAUpdateDateOLinePAT implements ModelValidator
 					{	
 						Calendar calendar = new GregorianCalendar(3022, 0, 1);
 						Timestamp newDateEnd = new Timestamp(calendar.getTimeInMillis());
-						if(newDateEnd != null && newDateEnd.after( (Timestamp)line.get_Value("DatePromised3")) ) 
-						{
-							line.setIsActive(true);
-							line.set_CustomColumn("DatePromised3", newDateEnd);
-							line.save();
-						}
+						line.setIsActive(true);
+						line.set_CustomColumn("DatePromised3", newDateEnd);
+						line.save();
 					}	
 				}
 			}
