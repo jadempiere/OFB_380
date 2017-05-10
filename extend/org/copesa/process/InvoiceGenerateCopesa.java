@@ -198,6 +198,7 @@ public class InvoiceGenerateCopesa extends SvrProcess
 			m_invoice.setC_DocType_ID(ID_DocType);
 			m_invoice.setC_DocTypeTarget_ID(ID_DocType);
 			m_invoice.set_CustomColumn("C_OrderPayCalendar_ID", C_OrderPayCalendar_ID);
+			m_invoice.set_CustomColumn("IsHold", order.get_Value("IsHold"));
 		}
 		if (!m_invoice.save())
 			throw new IllegalStateException("Could not create Invoice (o)");

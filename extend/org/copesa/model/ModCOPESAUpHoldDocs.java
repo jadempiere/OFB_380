@@ -63,7 +63,7 @@ public class ModCOPESAUpHoldDocs implements ModelValidator
 		}
 
 		//	Tables to be monitored
-		engine.addModelChange(MInvoice.Table_Name, this);		
+		//engine.addModelChange(MInvoice.Table_Name, this);		
 		//engine.addModelChange(X_C_OrderShipCalendar.Table_Name, this);	
 		
 	}	//	initialize

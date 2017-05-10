@@ -128,7 +128,7 @@ public class ModCOPESAUpdateShipLine implements ModelValidator
 			if(ID_Shipper > 0)
 				oLine.set_CustomColumn("M_Shipper_ID", ID_Shipper);
 		}
-		if((type == TYPE_BEFORE_CHANGE || type == TYPE_BEFORE_NEW) && po.get_Table_ID()==MOrderLine.Table_ID) 
+		if(type == TYPE_BEFORE_NEW && po.get_Table_ID()==MOrderLine.Table_ID) 
 		{	
 			MOrderLine oLine = (MOrderLine)po;
 			if(oLine.getM_Product_ID() > 0)

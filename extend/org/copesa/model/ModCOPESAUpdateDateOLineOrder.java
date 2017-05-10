@@ -17,6 +17,8 @@
 package org.copesa.model;
 
 import java.sql.Timestamp;
+import java.util.Calendar;
+
 import org.compiere.model.MClient;
 import org.compiere.model.MOrder;
 import org.compiere.model.MOrderLine;
@@ -24,6 +26,7 @@ import org.compiere.model.ModelValidationEngine;
 import org.compiere.model.ModelValidator;
 import org.compiere.model.PO;
 import org.compiere.util.CLogger;
+import org.compiere.util.DB;
 
 /**
  *	Validator for COPESA
@@ -76,40 +79,78 @@ public class ModCOPESAUpdateDateOLineOrder implements ModelValidator
 		log.info(po.get_TableName() + " Type: "+type);
 		
 		//if(type == TYPE_BEFORE_CHANGE && po.get_Table_ID()==MOrder.Table_ID && po.is_ValueChanged("DateOrdered")) 
-		if(type == TYPE_BEFORE_CHANGE && po.get_Table_ID()==MOrder.Table_ID && 
-				(po.is_ValueChanged("DatePromised") || po.is_ValueChanged("PaymentRule")))
+		if(type == TYPE_BEFORE_CHANGE && po.get_Table_ID()==MOrder.Table_ID )
 		{	
-			MOrder order = (MOrder)po;
-			if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("CO") != 0)
-			{
-				//se saca if, ahora se hara siempre
-				//if(order.getPaymentRule().compareTo("D") == 0 || order.getPaymentRule().compareTo("C") == 0)
-				//{
-					MOrderLine[] oLines = order.getLines(false, null);
-					//ininoles se cambia por datepromise
-					//Timestamp dateStartO = order.getDateOrdered();
-					Timestamp dateStartO = order.getDatePromised();
-					for (int i = 0; i < oLines.length; i++)
-					{
-						MOrderLine line = oLines[i];
-						if(line.get_ValueAsBoolean("IsFree") || line.get_ValueAsInt("C_OrderLineRef_ID") <= 0)
+			if ( po.is_ValueChanged("DatePromised") || po.is_ValueChanged("PaymentRule")  )
+			{	
+				MOrder order = (MOrder)po;
+				if ( !order.isSOTrx() ) 
+					return null;
+				
+				if (order.getDocStatus().compareToIgnoreCase("CO") != 0)
+				{
+						MOrderLine[] oLines = order.getLines(false, null);
+						//ininoles se cambia por datepromise
+						//Timestamp dateStartO = order.getDateOrdered();
+						Timestamp dateStartO = order.getDatePromised();
+						for (int i = 0; i < oLines.length; i++)
 						{
-							if(line.getM_Product_ID() > 0)
+							MOrderLine line = oLines[i];
+							if(line.get_ValueAsBoolean("IsFree") || line.get_ValueAsInt("C_OrderLineRef_ID") <= 0)
 							{
-								//Timestamp dateStart = (Timestamp)line.get_Value("DatePromised2");
-								//if(dateStartO.compareTo(dateStart) != 0)
-								//{
-									line.set_CustomColumn("DatePromised2", dateStartO);
-									line.set_CustomColumn("DatePromised3", null);
-									line.save();
-								//}
+								if(line.getM_Product_ID() > 0)
+								{
+										line.set_CustomColumn("DatePromised2", dateStartO);
+										line.set_CustomColumn("DatePromised3", null);
+										line.save();
+								}
 							}
 						}
+				}
+			}
+			
+			if( po.is_ValueChanged("DateCompleted") )
+			{
+				MOrder order = (MOrder)po;
+				if ( !order.isSOTrx() ) 
+					return null;
+
+				MOrderLine[] oLines = order.getLines(false, null);
+				for (int i = 0; i < oLines.length; i++)
+				{
+					MOrderLine oLine = oLines[i];
+					if(oLine.getM_Product_ID() > 0)
+					{
+						Calendar calendar = Calendar.getInstance();
+						Timestamp today = new Timestamp(calendar.getTimeInMillis());
+						Timestamp movDate = null;
+						movDate = DB.getSQLValueTS(po.get_TrxName(), "SELECT MAX(MovementDate) " +
+								" FROM M_ProductPrice pp " +
+								" INNER JOIN M_PriceList_Version plv ON (pp.M_PriceList_Version_ID = plv.M_PriceList_Version_ID) " +
+								" WHERE pp.IsActive = 'Y' AND pp.M_Product_ID = "+oLine.getM_Product_ID()+
+								" AND M_PriceList_ID = "+ oLine.getParent().getM_PriceList_ID());    //oLine.getC_Order().getM_PriceList_ID());
+						if(movDate != null)
+						{
+							//hacemos validacion primero
+							if(movDate != null && movDate.compareTo(today) < 0)
+								movDate = today;
+							oLine.set_CustomColumn("MovementDate",movDate);
+						}
+						else
+						{
+							movDate = (Timestamp)order.get_Value("DateCompleted");
+							//hacemos validacion primero
+							if(movDate != null && movDate.compareTo(today) < 0)
+								movDate = today;
+							if(movDate != null)
+								oLine.set_CustomColumn("MovementDate",movDate);
+						}
 					}
-				//}
+				}
+
 			}
 		}		
-	return null;
+		return null;
 	}	//	modelChange
 
 	public String docValidate (PO po, int timing)
