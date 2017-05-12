@@ -27,6 +27,7 @@ import org.compiere.model.ModelValidator;
 import org.compiere.model.PO;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
+import org.python.antlr.ast.GeneratorExp.generators_descriptor;
 
 /**
  *	Validator for COPESA
@@ -89,9 +90,8 @@ public class ModCOPESAUpdateDateOLineOrder implements ModelValidator
 				
 				if (order.getDocStatus().compareToIgnoreCase("CO") != 0)
 				{
+					//TODO: Corregir este bloque para que no haga save(). El save() gatilla en cascada más validaciones.
 						MOrderLine[] oLines = order.getLines(false, null);
-						//ininoles se cambia por datepromise
-						//Timestamp dateStartO = order.getDateOrdered();
 						Timestamp dateStartO = order.getDatePromised();
 						for (int i = 0; i < oLines.length; i++)
 						{
@@ -114,40 +114,7 @@ public class ModCOPESAUpdateDateOLineOrder implements ModelValidator
 				MOrder order = (MOrder)po;
 				if ( !order.isSOTrx() ) 
 					return null;
-
-				MOrderLine[] oLines = order.getLines(false, null);
-				for (int i = 0; i < oLines.length; i++)
-				{
-					MOrderLine oLine = oLines[i];
-					if(oLine.getM_Product_ID() > 0)
-					{
-						Calendar calendar = Calendar.getInstance();
-						Timestamp today = new Timestamp(calendar.getTimeInMillis());
-						Timestamp movDate = null;
-						movDate = DB.getSQLValueTS(po.get_TrxName(), "SELECT MAX(MovementDate) " +
-								" FROM M_ProductPrice pp " +
-								" INNER JOIN M_PriceList_Version plv ON (pp.M_PriceList_Version_ID = plv.M_PriceList_Version_ID) " +
-								" WHERE pp.IsActive = 'Y' AND pp.M_Product_ID = "+oLine.getM_Product_ID()+
-								" AND M_PriceList_ID = "+ oLine.getParent().getM_PriceList_ID());    //oLine.getC_Order().getM_PriceList_ID());
-						if(movDate != null)
-						{
-							//hacemos validacion primero
-							if(movDate != null && movDate.compareTo(today) < 0)
-								movDate = today;
-							oLine.set_CustomColumn("MovementDate",movDate);
-						}
-						else
-						{
-							movDate = (Timestamp)order.get_Value("DateCompleted");
-							//hacemos validacion primero
-							if(movDate != null && movDate.compareTo(today) < 0)
-								movDate = today;
-							if(movDate != null)
-								oLine.set_CustomColumn("MovementDate",movDate);
-						}
-					}
-				}
-
+				COPESAOrderOps.SetMovDates(order.getC_Order_ID(), order.get_TrxName() );
 			}
 		}		
 		return null;

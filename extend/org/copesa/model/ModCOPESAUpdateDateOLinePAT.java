@@ -16,13 +16,9 @@
  *****************************************************************************/
 package org.copesa.model;
 
-import java.sql.Timestamp;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 
 import org.compiere.model.MClient;
 import org.compiere.model.MOrder;
-import org.compiere.model.MOrderLine;
 import org.compiere.model.ModelValidationEngine;
 import org.compiere.model.ModelValidator;
 import org.compiere.model.PO;
@@ -82,23 +78,8 @@ public class ModCOPESAUpdateDateOLinePAT implements ModelValidator
 		if((type == TYPE_AFTER_CHANGE || type == TYPE_AFTER_NEW) && po.get_Table_ID()==MOrder.Table_ID) 
 		{	
 			MOrder order = (MOrder)po;
-			if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("CO") != 0
-					&& order.getPaymentRule().compareToIgnoreCase("D")==0)
-			{
-				MOrderLine[] oLines = order.getLines(false, null);
-				for (int i = 0; i < oLines.length; i++)
-				{
-					MOrderLine line = oLines[i];
-					if(!line.get_ValueAsBoolean("IsFree"))
-					{	
-						Calendar calendar = new GregorianCalendar(3022, 0, 1);
-						Timestamp newDateEnd = new Timestamp(calendar.getTimeInMillis());
-						line.setIsActive(true);
-						line.set_CustomColumn("DatePromised3", newDateEnd);
-						line.save();
-					}	
-				}
-			}
+			if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("CO") != 0 && order.getPaymentRule().compareToIgnoreCase("D") == 0)
+				COPESAOrderOps.SetDatesForPAT(order);
 		}		
 		return null;
 	}	//	modelChange

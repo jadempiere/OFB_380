@@ -31,6 +31,7 @@ import org.compiere.util.AdempiereUserError;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.copesa.model.COPESAOrderOps;
 import org.copesa.utils.DateUtils;
 
 
@@ -73,6 +74,9 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 	 
 	protected String doIt () throws Exception
 	{
+		// Partimos por agregar las líneas de flete
+		COPESAOrderOps.AddFreightLines((int)id_SOrder, (int) (Env.getAD_User_ID(Env.getCtx())), get_TrxName());
+		
 		MOrder order = new MOrder(getCtx(), id_SOrder, get_TrxName());
 		DateUtils datemgr = new DateUtils();
 		Timestamp hoy = datemgr.today();
