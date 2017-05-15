@@ -14,7 +14,7 @@ public class COPESAOrderOps {
 	public static BigDecimal getMonthlyPrice(MOrder _order) throws Exception 
 	{
 		int orderid = _order.getC_Order_ID();
-		if (orderid <= 0)
+		if (orderid <= 0 || _order.getDocStatus().compareTo("DR") == 0)
 			return null;
 	    String sql = "SELECT Round(total, 2) FROM   co_factcalendar_header fac " +
 	                 "JOIN c_order co on co.c_order_id =  fac.c_order_id " +
@@ -37,8 +37,9 @@ public class COPESAOrderOps {
 	public static BigDecimal getCopayment(MOrder _order) throws Exception 
 	{
 		int orderid = _order.getC_Order_ID();
-		if (orderid <= 0)
+		if (orderid <= 0 || _order.getDocStatus().compareTo("DR") == 0 || _order.getDatePromised().compareTo(_order.getDateOrdered()) == 0)
 			return null;
+		
 	    String sql = "SELECT Round(total, 2) " +
                      "FROM   co_factcalendar_header " +
                      "WHERE  c_order_id = ? AND periodo = 0";
@@ -59,7 +60,7 @@ public class COPESAOrderOps {
 	public static Timestamp getDateFirstInvoice(MOrder _order) throws Exception 
 	{
 		int orderid = _order.getC_Order_ID();
-		if (orderid <= 0)
+		if (orderid <= 0 || _order.getDocStatus().compareTo("DR") == 0 || _order.getDatePromised().compareTo(_order.getDateOrdered()) == 0)
 			return null;
 
 		String sql = "SELECT Min(fin) FROM co_factcalendar_header WHERE c_order_id = ?";

@@ -110,10 +110,12 @@ public class ModCOPESASetDateEndOLine implements ModelValidator
 				        calCalendario.add(Calendar.DATE, cant-1);
 				        Timestamp newDate = new Timestamp(calCalendario.getTimeInMillis());
 				        oLine.set_CustomColumn("DatePromised3", newDate) ;
-					}else if(cant == 0)
+					} 
+					/*else if(cant == 0)
+					}
 					{
 						oLine.set_CustomColumn("DatePromised3", dateStart);
-					}/*else if(cant == -1 && order.getDocStatus().compareToIgnoreCase("IP") == 0)
+					}else if(cant == -1 && order.getDocStatus().compareToIgnoreCase("IP") == 0)
 					{
 						oLine.setQty(Env.ZERO);
 						oLine.set_CustomColumn("DatePromised3", null);
@@ -157,24 +159,6 @@ public class ModCOPESASetDateEndOLine implements ModelValidator
 				        	//ininoles nueva validacion y cambios para fecha fin
 							Calendar calendar = Calendar.getInstance();
 							calendar.setTimeInMillis(newDate.getTime());
-							calendar.add(Calendar.DATE, 1);
-							oLineRef.set_CustomColumn("DatePromised2",new Timestamp(calendar.getTimeInMillis()));
-							oLineRef.set_CustomColumn("DatePromised3",null);
-							oLineRef.save();
-				        }
-					}
-					else if(cant == 0)
-					{
-						oLine.set_CustomColumn("DatePromised3", dateStart);				        
-				        //buscamos linea relacionada para actualizar fecha de inicio
-				        int ID_LineRef = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(C_OrderLine_ID) " +
-				        		"FROM C_OrderLine WHERE C_OrderLineRef_ID = "+oLine.get_ID()) ;
-				        if(ID_LineRef > 0)
-				        {
-				        	MOrderLine oLineRef = new MOrderLine(po.getCtx(), ID_LineRef, po.get_TrxName());
-				        	//ininoles nueva validacion y cambios para fecha fin
-							Calendar calendar = Calendar.getInstance();
-							calendar.setTimeInMillis(dateStart.getTime());
 							calendar.add(Calendar.DATE, 1);
 							oLineRef.set_CustomColumn("DatePromised2",new Timestamp(calendar.getTimeInMillis()));
 							oLineRef.set_CustomColumn("DatePromised3",null);

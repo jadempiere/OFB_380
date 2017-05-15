@@ -99,7 +99,7 @@ public class ModCOPESAUpdateOLineQtyNoVisible implements ModelValidator
 								oLine.set_CustomColumn("DatePromised3", null);
 								//oLine.setLineNetAmt();
 								//oLine.setTax();								
-								oLine.save();
+								//oLine.save();
 								oLine.setIsActive(false);
 								oLine.save();
 								//se actualiza totalline

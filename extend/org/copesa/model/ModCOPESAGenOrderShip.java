@@ -92,45 +92,6 @@ public class ModCOPESAGenOrderShip implements ModelValidator
 			MOrder order = (MOrder)po;
 			if(order.isSOTrx())
 			{
-				/*String sql = "SELECT ol.C_OrderLine_ID, ol.C_CalendarCOPESA_ID, cl.C_CalendarCOPESALine_ID, cl.DateTrx, ol.M_Product_ID " +
-						" FROM C_Order co" +
-						" INNER JOIN C_OrderLine ol ON (co.C_Order_ID = ol.C_Order_ID)" +
-						" INNER JOIN C_CalendarCOPESA cc ON (ol.C_CalendarCOPESA_ID = cc.C_CalendarCOPESA_ID)" +
-						" INNER JOIN C_CalendarCOPESALine cl ON (cc.C_CalendarCOPESA_ID = cl.C_CalendarCOPESA_ID) " +
-						" WHERE ol.C_Order_ID = "+order.get_ID()+" AND cl.IsShip = 'Y' AND co.PaymentRule IN ('D','C','I')";
-				if(order.getPaymentRule().compareTo("D") == 0 || order.getPaymentRule().compareTo("D") == 0)
-					sql = sql + " AND cl.datetrx BETWEEN ol.DatePromised2 AND ol.DatePromised2+(2 * '1 year'::interval) ";
-				else
-				{
-					//siempre que sea a 2 años
-					//sql = sql + " AND cl.datetrx BETWEEN ol.DatePromised2 AND ol.DatePromised3 ";
-					sql = sql + " AND cl.datetrx BETWEEN ol.DatePromised2 AND ol.DatePromised2+(2 * '1 year'::interval) ";
-				}
-				sql = sql + " ORDER BY cl.datetrx ASC";*/
-				/*String sql = "SELECT ol.C_OrderLine_ID, ol.C_CalendarCOPESA_ID, cl.C_CalendarCOPESALine_ID, cl.DateTrx, ol.M_Product_ID " +
-						" FROM C_Order co " +
-						" INNER JOIN C_OrderLine ol ON (co.C_Order_ID = ol.C_Order_ID) " +
-						" INNER JOIN C_CalendarCOPESA cc ON (ol.C_CalendarCOPESA_ID = cc.C_CalendarCOPESA_ID) " +
-						" INNER JOIN C_CalendarCOPESALine cl ON (cc.C_CalendarCOPESA_ID = cl.C_CalendarCOPESA_ID) " +
-						" INNER JOIN M_Product mp ON (ol.M_Product_ID = mp.M_Product_ID) " +
-						" INNER JOIN M_Product_Category mpc ON (mp.M_Product_Category_ID = mpc.M_Product_Category_ID) " +
-						" WHERE ol.C_Order_ID = "+order.get_ID()+" AND cl.IsShip = 'Y' " +
-								//"AND co.PaymentRule IN ('D','C','I') " +
-						" AND ol.IsActive = 'Y' AND upper(mpc.description) like 'EDITORIAL' AND ol.IsFree = 'N' " +
-						" AND cl.datetrx BETWEEN ol.DatePromised2 AND ol.DatePromised2+(2 * '1 month'::interval)" +
-						" UNION " +
-						" SELECT ol.C_OrderLine_ID, ol.C_CalendarCOPESA_ID, cl.C_CalendarCOPESALine_ID, cl.DateTrx, ol.M_Product_ID " +
-						" FROM C_Order co" +
-						" INNER JOIN C_OrderLine ol ON (co.C_Order_ID = ol.C_Order_ID)" +
-						" INNER JOIN C_CalendarCOPESA cc ON (ol.C_CalendarCOPESA_ID = cc.C_CalendarCOPESA_ID)" +
-						" INNER JOIN C_CalendarCOPESALine cl ON (cc.C_CalendarCOPESA_ID = cl.C_CalendarCOPESA_ID)" +
-						" INNER JOIN M_Product mp ON (ol.M_Product_ID = mp.M_Product_ID)" +
-						" INNER JOIN M_Product_Category mpc ON (mp.M_Product_Category_ID = mpc.M_Product_Category_ID) " +
-						" WHERE ol.C_Order_ID = "+order.get_ID()+" AND cl.IsShip = 'Y' " +
-								//"AND co.PaymentRule IN ('D','C','I') " +
-						" AND ol.IsActive = 'Y' AND upper(mpc.description) like 'EDITORIAL' AND ol.IsFree = 'Y' " +
-						" AND cl.datetrx BETWEEN ol.DatePromised2 AND ol.DatePromised3 " +
-						" ORDER BY datetrx ASC ";*/
 				String sql = "SELECT * FROM RVOFB_OrderShip WHERE C_Order_ID = "+order.get_ID();
 				
 				try 

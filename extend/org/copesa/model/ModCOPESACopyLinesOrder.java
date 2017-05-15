@@ -64,7 +64,8 @@ public class ModCOPESACopyLinesOrder implements ModelValidator
 		}
 
 		//	Tables to be monitored
-		engine.addModelChange(MOrderLine.Table_Name, this);		
+		//REFACTORIZACION: Este model no hace falta
+		//engine.addModelChange(MOrderLine.Table_Name, this);		
 		
 	}	//	initialize
 

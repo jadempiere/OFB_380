@@ -24,7 +24,7 @@ import org.compiere.model.ModelValidationEngine;
 import org.compiere.model.ModelValidator;
 import org.compiere.model.PO;
 import org.compiere.util.CLogger;
-
+import org.compiere.util.Env;
 
 /**
  *	Validator for COPESA
@@ -85,10 +85,16 @@ public class ModCOPESAFreightCategory implements ModelValidator
 				|| po.is_ValueChanged("datePromised") || po.is_ValueChanged("PaymentRule") )
 			{	
 			    if ( order.getDocStatus().compareTo("DR") != 0) 
+			    {	
+			    	COPESAOrderOps.AddFreightLines(order.getC_Order_ID(), Integer.parseInt(Env.getContext(order.getCtx(),"#AD_User_ID")) , order.get_TrxName());
 			    	COPESAOrderOps.UpdatePrices(order);
+			    	
+			    }	
 			}    
 
-		}		
+		}	
+		
+		/*
 		if((type == TYPE_AFTER_CHANGE || type == TYPE_AFTER_NEW) && po.get_Table_ID()==MOrderLine.Table_ID ) 
 		{
 			MOrderLine oLine = (MOrderLine)po;
@@ -98,7 +104,7 @@ public class ModCOPESAFreightCategory implements ModelValidator
 			    if ( order.getDocStatus().compareTo("DR") != 0) 
 			    	COPESAOrderOps.UpdatePrices(order);
 			}
-		}
+		}*/
 		
 		return null;
 	}	//	modelChange

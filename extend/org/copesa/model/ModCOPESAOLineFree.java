@@ -153,16 +153,16 @@ public class ModCOPESAOLineFree implements ModelValidator
 								}else if(cant == 0){									
 									oLineNew.set_CustomColumn("DatePromised3", order.getDateOrdered());
 								}						
-								oLineNew.save();
 								//campo gracia
 								if(newAmtPAT != null && newAmtPAT.compareTo(Env.ZERO) > 0)
 								{
 									oLineNew.set_CustomColumn("MonthlyAmount",newAmtPAT);
-									oLineNew.save();
 								}
+								oLineNew.save();
 								//actualizamos fecha de inicio de linea base
 								calendar.add(Calendar.DATE, 1);
 								oLine.set_CustomColumn("DatePromised2",new Timestamp(calendar.getTimeInMillis()));
+								//TODO: Poner fecha correcta (no siempre es necesario poner null)
 								oLine.set_CustomColumn("DatePromised3",null);		
 								oLine.set_CustomColumn("C_OrderLineRef_ID", oLineNew.get_ID());												
 								oLine.save();																						
@@ -171,7 +171,7 @@ public class ModCOPESAOLineFree implements ModelValidator
 					}
 				}
 			}
-		}		
+		}
 	return null;
 	}	//	modelChange
 

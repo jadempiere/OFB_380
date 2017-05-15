@@ -66,7 +66,8 @@ public class ModCOPESADateOrder implements ModelValidator
 		}
 
 		//	Tables to be monitored
-		engine.addDocValidate(MOrder.Table_Name, this);		
+		// REFACTORIZACION: Este model no hace falta
+		//engine.addDocValidate(MOrder.Table_Name, this);		
 		
 	}	//	initialize
 
