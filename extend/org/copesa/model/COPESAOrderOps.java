@@ -6,7 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import org.compiere.util.DB;
-
+import org.compiere.model.MOrderLine;
 
 
 public class COPESAOrderOps {
@@ -159,5 +159,65 @@ public class COPESAOrderOps {
 		String sql = "UPDATE C_OrderLine set datepromised3 = to_date('01-01-3022', 'DD-MM-YYYY'), isactive = 'Y' WHERE C_Order_ID = " + orderid + " AND isfree = 'N'";
 		DB.executeUpdate(sql, _order.get_TrxName());
 	}
+
+	
+	
+	public static int getLineGeozone(MOrderLine _orderline) throws Exception 
+	{
+		int geozoneid = -1;
+		
+		int orderlineid = _orderline.getC_OrderLine_ID();
+		if (orderlineid <= 0 )
+			return -1;
+		
+		int mprodid = _orderline.getM_Product_ID();
+		if (mprodid <= 0)
+			mprodid = _orderline.get_ValueAsInt("M_ProductRef_ID");
+		
+		if( mprodid <= 0 )
+			return -1;
+		
+		
+		int locid = _orderline.getC_BPartner_Location_ID();
+		if (locid <= 0)
+			return -1;
+		
+		String sql = "select case when cat.description ~ 'NOEDITORIAL' then 'G' ELSE 'E' end " +
+		             "from m_product mp " +
+		             "join m_product_category cat on (cat.m_product_category_id = mp.m_product_category_id )" +
+			         "where mp.m_product_id = ? ";
+
+		PreparedStatement pstmt = DB.prepareStatement(sql, _orderline.get_TrxName());
+	    pstmt.setInt(1, mprodid);
+	    ResultSet rs = pstmt.executeQuery();
+	    String cat = "E";
+	    if (rs.next() )
+	    	cat = rs.getString(1);
+	    rs.close();
+	    pstmt.close();
+			  
+		
+	    sql = "select MAX(gzc.C_Geozone_ID) " +
+	          "FROM C_GeozoneCities gzc " + 
+	          "JOIN C_Geozone gz ON (gzc.C_Geozone_ID = gz.C_Geozone_ID) " + 
+	          "JOIN C_BPartner_Location cbp on cbp.c_city_id = gzc.c_city_id " +  
+	          "where cbp.c_bpartner_location_id = ? " +
+	          "  and gzc.IsActive = 'Y' " +
+	          "  and gz.type = ?";
+	    
+	    pstmt = DB.prepareStatement(sql, _orderline.get_TrxName());
+	    pstmt.setInt(1, locid);
+	    pstmt.setString(2, cat);
+	    rs = pstmt.executeQuery();
+	    if (rs.next() )
+	    	geozoneid = rs.getInt(1);
+	    rs.close();
+	    pstmt.close();
+	    return geozoneid;
+	    
+	}
+	
+	
+
 	
 }

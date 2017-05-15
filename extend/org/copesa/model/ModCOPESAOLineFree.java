@@ -141,6 +141,8 @@ public class ModCOPESAOLineFree implements ModelValidator
 								oLineNew.set_CustomColumn("IsFree", true);
 								//oLineNew.set_CustomColumn("DatePromised2", order.getDateOrdered());
 								oLineNew.set_CustomColumn("DatePromised2", order.getDatePromised());
+								oLineNew.set_CustomColumn("M_Locator_ID", oLine.get_ValueAsInt("M_Locator_ID"));
+								
 								//se suman dias a fecha fin
 								//ininoles nueva validacion y cambios para fecha fin
 								Calendar calendar = Calendar.getInstance();
@@ -158,6 +160,14 @@ public class ModCOPESAOLineFree implements ModelValidator
 								{
 									oLineNew.set_CustomColumn("MonthlyAmount",newAmtPAT);
 								}
+								int geozoneid = oLine.get_ValueAsInt("C_Geozone_ID");
+								if (geozoneid <= 0)
+								    geozoneid = COPESAOrderOps.getLineGeozone(oLine);
+								if (geozoneid > 0)
+								{	
+								    oLineNew.set_CustomColumn("C_Geozone_ID", geozoneid);
+								    oLine.set_CustomColumn("C_Geozone_ID", geozoneid);
+								}    
 								oLineNew.save();
 								//actualizamos fecha de inicio de linea base
 								calendar.add(Calendar.DATE, 1);

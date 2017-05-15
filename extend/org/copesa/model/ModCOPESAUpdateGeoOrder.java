@@ -84,7 +84,7 @@ public class ModCOPESAUpdateGeoOrder implements ModelValidator
 					&& order.getDocStatus().compareToIgnoreCase("CL") != 0))
 			{	
 				//buscamos geozona de cabecera
-				if(order.getC_BPartner_Location_ID() > 0)
+				if(order.get_ValueAsInt("C_BPartner_Location2_ID") > 0 && order.is_ValueChanged("C_BPartner_Location2_ID"))
 				{
 					MBPartnerLocation bpLoc = new MBPartnerLocation(po.getCtx(), order.get_ValueAsInt("C_BPartner_Location2_ID"), po.get_TrxName());
 					int ID_Geozona = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(gzc.C_Geozone_ID) " +
@@ -106,23 +106,9 @@ public class ModCOPESAUpdateGeoOrder implements ModelValidator
 					&& order.getDocStatus().compareToIgnoreCase("CL") != 0))
 			{	
 				//buscamos geozona de linea
-				String typeGeo = "D";
-				if(oLine.getM_Product().getM_Product_Category().getDescription() != null &&
-						oLine.getM_Product().getM_Product_Category().getDescription().toUpperCase().contains("NOEDITORIAL"))
-					typeGeo = "G";
-				else if(oLine.getM_Product().getM_Product_Category().getDescription() != null &&
-						oLine.getM_Product().getM_Product_Category().getDescription().compareToIgnoreCase("EDITORIAL") == 0)
-					typeGeo = "E";
-				else
-					typeGeo = "E";
-				if(oLine.getC_BPartner_Location_ID() > 0)
+				if(oLine.getC_BPartner_Location_ID() > 0 && oLine.is_ValueChanged("C_BPartner_Location_ID"))
 				{
-					MBPartnerLocation olLoc = new MBPartnerLocation(po.getCtx(), oLine.getC_BPartner_Location_ID() , po.get_TrxName());
-					int ID_Geozona = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(gzc.C_Geozone_ID) " +
-							" FROM C_GeozoneCities gzc " +
-							" INNER JOIN C_Geozone gz ON (gzc.C_Geozone_ID = gz.C_Geozone_ID) " +
-							" WHERE gzc.IsActive = 'Y' AND TYPE = '"+typeGeo+"'" +
-							" AND gzc.C_City_ID = "+olLoc.get_ValueAsInt("C_City_ID"));			
+					int ID_Geozona = COPESAOrderOps.getLineGeozone(oLine);		
 					if(ID_Geozona > 0)
 						oLine.set_CustomColumn("C_Geozone_ID", ID_Geozona);
 				}
