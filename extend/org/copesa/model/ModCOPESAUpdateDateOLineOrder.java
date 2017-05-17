@@ -68,7 +68,8 @@ public class ModCOPESAUpdateDateOLineOrder implements ModelValidator
 		}
 
 		//	Tables to be monitored
-		engine.addModelChange(MOrder.Table_Name, this);		
+		//TODO: Sacar de configuración de models
+		//engine.addModelChange(MOrder.Table_Name, this);		
 		
 	}	//	initialize
 

@@ -82,7 +82,7 @@ public class ModCOPESAFreightCategory implements ModelValidator
 		{	
 			MOrder order = (MOrder)po;
 			if ( po.is_ValueChanged("DocStatus") || po.is_ValueChanged("C_BPartner_Location_ID") || po.is_ValueChanged("C_Channel_ID") 
-				|| po.is_ValueChanged("datePromised") || po.is_ValueChanged("PaymentRule") )
+				|| po.is_ValueChanged("datePromised") || po.is_ValueChanged("PaymentRule") || po.is_ValueChanged("DateFinish") )
 			{	
 			    if ( order.getDocStatus().compareTo("DR") != 0) 
 			    {	

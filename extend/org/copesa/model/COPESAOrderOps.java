@@ -134,7 +134,7 @@ public class COPESAOrderOps {
 	    pstmt.close();
 	    
 	}
-	
+	/*
 	public static void SetLinesDates(int _orderid, String _trxName) throws Exception
 	{
 		if (_orderid <= 0)
@@ -149,8 +149,21 @@ public class COPESAOrderOps {
 	    
 	}
 	
-	
-	public static void SetDatesForPAT(MOrder _order)
+	*/
+	public static void setOrderLinesDates(int _orderid, String _trxName) throws Exception
+	{
+		if (_orderid <= 0)
+			return;
+
+		String sql = "select copesa_setorderlinesdates(?)";
+	    
+	    PreparedStatement pstmt = DB.prepareStatement(sql, _trxName);
+	    pstmt.setInt(1, _orderid);
+	    pstmt.execute();
+	    pstmt.close();
+	}
+
+	public static void SetDatesForNoPAT(MOrder _order)
 	{
 		int orderid = _order.getC_Order_ID();
 		if (orderid <= 0)

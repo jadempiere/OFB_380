@@ -192,59 +192,6 @@ public class SubFunctionKeys extends PosSubPanel implements ActionListener
 				MPOSKey key = m_keys[i];
 				if (key.getC_POSKey_ID() == C_POSKey_ID)
 				{
-					//ID_ProductL1 = key.getM_Product_ID();
-					//obtenemos monto nuevo
-					//BigDecimal amt = null;
-					//String PPriceFlag = "Y";
-					//BigDecimal amtMonthly = null;
-					//String sqlAmt = "";
-					//String sqlAmtMonthly = "";
-					/*if(ID_Level == 1)
-					{
-						try 
-						{	*/						
-							 /*sqlAmt = "SELECT Price FROM M_ProductPriceRef WHERE IsActive = 'Y'" +
-								" AND M_Product_ID = "+ID_ProductL1+" AND Levels = '0"+ID_Level+"' " +
-								" AND M_ProductRef_ID = "+key.getM_Product_ID()+" AND M_ProductRef2_ID = "+ID_LastProduct+
-								" AND M_PriceList_Version_ID = "+p_posPanel.f_bpartner.getM_PriceList_Version_ID();*/
-					/*		 sqlAmt = "SELECT PriceList FROM M_ProductPrice WHERE IsActive = 'Y' " +
-							 	" AND M_Product_ID = "+key.getM_Product_ID()+" AND Levels = "+ID_LevelPrice+
-							 	" AND M_PriceList_Version_ID = "+p_posPanel.f_bpartner.getM_PriceList_Version_ID();
-							 amt = DB.getSQLValueBD(null, sqlAmt);
-							 //precio mensual
-							 sqlAmtMonthly = "SELECT PricePat FROM M_ProductPrice WHERE IsActive = 'Y' " +
-							 	" AND M_Product_ID = "+key.getM_Product_ID()+" AND Levels = "+ID_LevelPrice+
-							 	" AND M_PriceList_Version_ID = "+p_posPanel.f_bpartner.getM_PriceList_Version_ID();
-							 amtMonthly = DB.getSQLValueBD(null, sqlAmtMonthly);
-							 //end
-							 
-						}catch (Exception e2) 
-						{
-							log.config("error"+e2+" SQL: "+sqlAmt);
-							amt = Env.ZERO;
-						}
-					}
-					else if(ID_Level > 1)
-					{
-						try 
-						{	
-							sqlAmt = "SELECT Price FROM M_ProductPriceRef WHERE IsActive = 'Y' " +
-							 	" AND M_Product_ID = "+key.getM_Product_ID()+" AND Levels = "+ID_LevelPrice+
-							 	" AND M_PriceList_Version_ID = "+p_posPanel.f_bpartner.getM_PriceList_Version_ID();
-							 amt = DB.getSQLValueBD(null, sqlAmt);
-							 //precio mensual
-							 sqlAmtMonthly = "SELECT PricePAT FROM M_ProductPriceRef WHERE IsActive = 'Y' " +
-							 	" AND M_Product_ID = "+key.getM_Product_ID()+" AND Levels = "+ID_LevelPrice+
-							 	" AND M_PriceList_Version_ID = "+p_posPanel.f_bpartner.getM_PriceList_Version_ID();
-							 amtMonthly = DB.getSQLValueBD(null, sqlAmtMonthly);
-							 //end
-						}catch (Exception e2) 
-						{
-							log.config("error"+e2+" SQL: "+sqlAmt);
-							amt = Env.ZERO;
-						}
-					}*/
-					//ininoles end
 					//ininoles validacion de campos llenos
 					if(p_posPanel.f_bpartner.getC_BPartner_ID() <= 0 || p_posPanel.f_bpartner.getC_BPartner_Location_ID() <= 0
 							|| p_posPanel.f_bpartner.getC_BpartnertRef_ID() <= 0 || p_posPanel.f_bpartner.getC_BPartner_LocationShip_ID() <= 0)
@@ -255,13 +202,6 @@ public class SubFunctionKeys extends PosSubPanel implements ActionListener
 					}
 					else
 					{
-						//se deja en solo lectura los campos de socio de negocio y direccion de despacho
-						/*p_posPanel.f_bpartner.f_name.setReadWrite(false);
-						p_posPanel.f_bpartner.f_name.setEditable(false);
-						p_posPanel.f_bpartner.f_location.setReadWrite(false);
-						p_posPanel.f_bpartner.f_location.setEditable(false);
-						p_posPanel.f_bpartner.f_bSearch.setReadWrite(false);*/
-						//ininoles end						
 						p_posPanel.f_product.setM_Product_ID(key.getM_Product_ID());
 						p_posPanel.f_product.setPrice();
 						p_posPanel.f_curLine.setQty(key.getQty());
@@ -275,8 +215,6 @@ public class SubFunctionKeys extends PosSubPanel implements ActionListener
 						//ininoles guardamos ID de producto usado
 						log.config("guardamos variable product_id"+key.getM_Product_ID()+
 								" poskey_id"+key.get_ID());
-						//ID_BotonHide = ID_BotonHide+","+key.getM_Product_ID();
-						//ininoles guardamos valor de ticket aumenta precio
 					}
 					p_posPanel.updateBtn();
 					return;

@@ -111,17 +111,7 @@ public class ModCOPESASetDateEndOLine implements ModelValidator
 				        Timestamp newDate = new Timestamp(calCalendario.getTimeInMillis());
 				        oLine.set_CustomColumn("DatePromised3", newDate) ;
 					} 
-					/*else if(cant == 0)
-					}
-					{
-						oLine.set_CustomColumn("DatePromised3", dateStart);
-					}else if(cant == -1 && order.getDocStatus().compareToIgnoreCase("IP") == 0)
-					{
-						oLine.setQty(Env.ZERO);
-						oLine.set_CustomColumn("DatePromised3", null);
-						oLine.setLineNetAmt();
-						oLine.setTax();
-					}*/					
+			
 				}
 			}else if(order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("CO") != 0
 					&& oLine.get_ValueAsBoolean("IsFree") && oLine.getM_Product_ID() > 0)

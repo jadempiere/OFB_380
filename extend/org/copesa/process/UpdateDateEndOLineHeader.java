@@ -97,12 +97,21 @@ public class UpdateDateEndOLineHeader extends SvrProcess
 							throw new AdempiereException("Error: Dia debe ser "+CorrectDay);
 						BigDecimal newAmt = null;
 						Timestamp dateEnd = (Timestamp)oLine.get_Value("DatePromised3");
-						long dif1 = dateEnd.getTime()-dateStart.getTime();
-						dif1 = dif1*(24 * 60 * 60 * 1000);
-						long dif2 = p_DatePromised.getTime()-dateStart.getTime();
-						dif2 = dif2*(24 * 60 * 60 * 1000);
-						newAmt = oLine.getPriceEntered().multiply(new BigDecimal(dif2));
-						newAmt = newAmt.divide(new BigDecimal(dif1), 0, RoundingMode.HALF_EVEN);				
+						// Se suma 1 porque las fechas de término están truncadas a 00:00:00.000, cuando en realidad deberían ser 23:59:59.999
+						BigDecimal dif1 = new BigDecimal(dateEnd.getTime()-dateStart.getTime() + 24*3600*1000);  
+							
+						//dif1 = dif1*(24 * 60 * 60 * 1000);
+						BigDecimal dif2 = new BigDecimal(p_DatePromised.getTime()-dateStart.getTime() + 24*3600*1000);
+						
+						//dif2 = dif2*(24 * 60 * 60 * 1000);
+						BigDecimal factor = dif2.divide(dif1, 8, BigDecimal.ROUND_HALF_UP);;
+
+						newAmt = oLine.getPriceEntered().multiply(factor);
+						newAmt = newAmt.setScale(2,  BigDecimal.ROUND_HALF_UP);
+						
+						
+						//newAmt = oLine.getPriceEntered().multiply(new BigDecimal(dif2));
+						//newAmt = newAmt.divide(new BigDecimal(dif1), 0, RoundingMode.HALF_UP);				
 						oLine.setPrice(newAmt);
 						oLine.setLineNetAmt();
 						oLine.setTax();

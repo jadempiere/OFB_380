@@ -78,8 +78,8 @@ public class ModCOPESAUpdateDateOLinePAT implements ModelValidator
 		if((type == TYPE_AFTER_CHANGE || type == TYPE_AFTER_NEW) && po.get_Table_ID()==MOrder.Table_ID) 
 		{	
 			MOrder order = (MOrder)po;
-			if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("CO") != 0 && order.getPaymentRule().compareToIgnoreCase("D") == 0)
-				COPESAOrderOps.SetDatesForPAT(order);
+			if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("CO") != 0 )
+				COPESAOrderOps.setOrderLinesDates(order.get_ID(), order.get_TrxName());
 		}		
 		return null;
 	}	//	modelChange

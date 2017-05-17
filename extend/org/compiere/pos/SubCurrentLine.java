@@ -704,34 +704,6 @@ public class SubCurrentLine extends PosSubPanel implements ActionListener {
 			return null;
 		if (!order.getDocStatus().equals("DR"))
 			return null;
-		//add new line or increase qty
-		
-		// catch Exceptions at order.getLines()
-		/*int numLineas = 0;
-		MOrderLine[] lineas = null;
-		try
-		{
-			lineas = order.getLines("","");
-			numLineas = lineas.length;
-			for (int i = 0; i < numLineas; i++)
-			{
-				if (lineas[i].getM_Product_ID() == product.getM_Product_ID())
-				{
-					//increase qty
-					double current = lineas[i].getQtyEntered().doubleValue();
-					double toadd = QtyOrdered.doubleValue();
-					double total = current + toadd;
-					lineas[i].setQty(new BigDecimal(total));
-					lineas[i].setPrice(); //	sets List/limit
-					lineas[i].save();
-					return lineas[i];
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			log.severe("Order lines cannot be created - " + e.getMessage());
-		}*/
 
         //create new line
 		MOrderLine line = new MOrderLine(order);
@@ -740,7 +712,7 @@ public class SubCurrentLine extends PosSubPanel implements ActionListener {
 			
 		line.setPrice(); //	sets List/limit
 		line.setPrice(PriceActual);
-		line.save();
+		//line.save();
 		return line;
 			
 	} //	createLine
