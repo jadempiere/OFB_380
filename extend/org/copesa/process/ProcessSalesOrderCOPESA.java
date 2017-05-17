@@ -75,12 +75,11 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 	protected String doIt () throws Exception
 	{
 		// Partimos por agregar las líneas de flete
-		COPESAOrderOps.AddFreightLines((int)id_SOrder, (int) (Env.getAD_User_ID(Env.getCtx())), get_TrxName());
+		//COPESAOrderOps.AddFreightLines((int)id_SOrder, (int) (Env.getAD_User_ID(Env.getCtx())), get_TrxName());
 		
 		MOrder order = new MOrder(getCtx(), id_SOrder, get_TrxName());
-		DateUtils datemgr = new DateUtils();
-		Timestamp hoy = datemgr.today();
-		Timestamp instant = datemgr.now();
+		Timestamp hoy = DateUtils.today();
+		Timestamp instant = DateUtils.now();
 		
 		if(order.getDocStatus().compareTo("CO") != 0 
 				&& order.getDocStatus().compareTo("VO") != 0)
@@ -114,7 +113,7 @@ public class ProcessSalesOrderCOPESA extends SvrProcess
 						{
 							MOrderLine lineAfter = new MOrderLine(getCtx(), line.get_ValueAsInt("C_OrderLineRef_ID"),get_TrxName());
 							Timestamp dateStartAfter = (Timestamp)lineAfter.get_Value("DatePromised2");
-							Timestamp newDate = datemgr.nextDay( dateEnd );
+							Timestamp newDate = DateUtils.nextDay( dateEnd );
 							if(dateStartAfter.compareTo(newDate) != 0)
 								throw new AdempiereException("Error: Fecha de Linea "+lineAfter.getLine()+" incorrecta");
 						}

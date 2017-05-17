@@ -16,6 +16,8 @@
  *****************************************************************************/
 package org.copesa.model;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
@@ -27,6 +29,7 @@ import org.compiere.model.ModelValidator;
 import org.compiere.model.PO;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
+import org.copesa.utils.DateUtils;
 
 /**
  *	Validator for COPESA
@@ -127,17 +130,26 @@ public class ModCOPESASetDateEndOLine implements ModelValidator
 				}
 				if(dateStart != null && dateEnd == null)
 				{
-					int cant = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(FreeDays) as FreeDays " +
+					String sql = "SELECT FreeDays, durationdays " +
 							" FROM M_ProductPrice pp " +
 							" INNER JOIN M_PriceList_Version plv ON pp.M_PriceList_Version_ID = plv.M_PriceList_Version_ID " +
 							" INNER JOIN M_PriceList pl ON plv.M_PriceList_ID = pl.M_PriceList_ID " +
 							" WHERE pp.IsActive = 'Y' AND M_product_ID = "+oLine.getM_Product_ID()+
-							" AND pl.M_priceList_ID = "+order.getM_PriceList_ID());
-					if(cant > 0)
+							" AND pl.M_priceList_ID = "+order.getM_PriceList_ID();
+							
+					PreparedStatement pstmt = DB.prepareStatement(sql, order.get_TrxName());
+				    ResultSet rs = pstmt.executeQuery();
+				    int duration = -1;
+				    int freedays = -1;
+					if(rs.next())
 					{
+						freedays = rs.getInt(1);
+						duration = rs.getInt(2);
+						if (freedays <= 0 )
+							freedays = 1;
 						Calendar calCalendario = Calendar.getInstance();
 				        calCalendario.setTimeInMillis(dateStart.getTime());
-				        calCalendario.add(Calendar.DATE, cant-1);
+				        calCalendario.add(Calendar.DATE, freedays - 1);
 				        Timestamp newDate = new Timestamp(calCalendario.getTimeInMillis());
 				        oLine.set_CustomColumn("DatePromised3", newDate) ;
 				        //buscamos linea relacionada para actualizar fecha de inicio
@@ -148,10 +160,27 @@ public class ModCOPESASetDateEndOLine implements ModelValidator
 				        	MOrderLine oLineRef = new MOrderLine(po.getCtx(), ID_LineRef, po.get_TrxName());
 				        	//ininoles nueva validacion y cambios para fecha fin
 							Calendar calendar = Calendar.getInstance();
-							calendar.setTimeInMillis(newDate.getTime());
-							calendar.add(Calendar.DATE, 1);
+							calendar.setTimeInMillis(dateStart.getTime());
+							calendar.add(Calendar.DATE, freedays);
 							oLineRef.set_CustomColumn("DatePromised2",new Timestamp(calendar.getTimeInMillis()));
-							oLineRef.set_CustomColumn("DatePromised3",null);
+							//------
+							dateEnd = null;
+							if (order.getPaymentRule().compareTo("D") == 0 )
+								dateEnd = DateUtils.veryDistantDate();
+							else
+							{
+								if (duration == 0 )
+									duration = 1;
+								
+								if (duration > 0 )
+								{	
+									calendar.add(Calendar.DATE, duration - 1);
+									dateEnd = new Timestamp(calendar.getTimeInMillis());
+								}
+							}
+							oLineRef.set_CustomColumn("DatePromised3", dateEnd);									
+							//------------------
+							//oLineRef.set_CustomColumn("DatePromised3",null);
 							oLineRef.save();
 				        }
 					}

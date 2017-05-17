@@ -17,8 +17,8 @@
 package org.copesa.model;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.util.Calendar;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 import org.compiere.model.MClient;
 import org.compiere.model.MOrder;
@@ -78,6 +78,12 @@ public class ModCOPESAOLineFree implements ModelValidator
      */
 	public String modelChange (PO po, int type) throws Exception
 	{
+	    BigDecimal newAmt;
+	    BigDecimal newAmtPAT;
+	    int freedays;
+	    int durationdays;
+	    int lineid;
+	    MOrderLine oLine;
 		log.info(po.get_TableName() + " Type: "+type);
 		
 		if((type == TYPE_BEFORE_NEW || type == TYPE_BEFORE_CHANGE)&& po.get_Table_ID()==MOrder.Table_ID) 
@@ -85,106 +91,70 @@ public class ModCOPESAOLineFree implements ModelValidator
 			MOrder order = (MOrder)po;
 			if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("IP") == 0)
 			{
-				if (order.isSOTrx() && order.getDocStatus().compareToIgnoreCase("CO") != 0)
-				{
-					MOrderLine[] lines = order.getLines();
+
+				MOrderLine[] lines = order.getLines();
+				// El query busca todas aquellas líneas de productos de gracia de la orden que aún no son referenciadas por otra línea,
+				// es decir, aquellas líneas que les falta crear su línea de producto de gracia.
+				String sql = "SELECT c_orderline_id, FreeDays, FreeAmt, PricePATFree, durationdays " +
+							 "FROM M_ProductPrice pp " +
+							 "INNER JOIN M_PriceList_Version plv ON pp.M_PriceList_Version_ID = plv.M_PriceList_Version_ID " + 
+							 "INNER JOIN M_PriceList pl ON plv.M_PriceList_ID = pl.M_PriceList_ID " + 
+							 "INNER JOIN c_orderline col on col.m_product_id = pp.m_product_id " +
+							 "WHERE pp.IsActive = 'Y' " + 
+							 "AND pl.M_priceList_ID = ? " +
+							 "AND col.c_order_id = ? " +
+							 "AND pp.freedays >= 0 " +
+							 "AND not exists (select * from c_orderline where c_orderlineref_id = col.c_orderline_id) ";
+
+				PreparedStatement pstmt = DB.prepareStatement(sql, order.get_TrxName());
+			    pstmt.setInt(1, order.getM_PriceList_ID());  
+			    pstmt.setInt(2, order.getC_Order_ID());  
+			    ResultSet rs = pstmt.executeQuery();
+			    
+			    while (rs.next() )
+			    {	
+			    	lineid = rs.getInt(1);
+			    	
+			    	if(lineid <= 0)
+			    		continue;
+			    	oLine = null;
 					for (int i = 0; i < lines.length; i++)
 					{
-						MOrderLine oLine = lines[i];
-						int cantRef = DB.getSQLValue(po.get_TrxName(), "SELECT COUNT(1) FROM C_OrderLine " +
-								" WHERE C_OrderLineRef_ID = "+oLine.get_ID());
-						if(!oLine.get_ValueAsBoolean("IsFree") && cantRef < 1 && oLine.getM_Product_ID() > 0)
-						{
-							int cant = DB.getSQLValue(po.get_TrxName(), "SELECT MAX(FreeDays) as FreeDays " +
-									" FROM M_ProductPrice pp " +
-									" INNER JOIN M_PriceList_Version plv ON pp.M_PriceList_Version_ID = plv.M_PriceList_Version_ID " +
-									" INNER JOIN M_PriceList pl ON plv.M_PriceList_ID = pl.M_PriceList_ID " +
-									" WHERE pp.IsActive = 'Y' AND M_product_ID = "+oLine.getM_Product_ID()+
-									" AND pl.M_priceList_ID = "+order.getM_PriceList_ID());
-							//ininoles consultamos monto
-							BigDecimal newAmt = DB.getSQLValueBD(po.get_TrxName(), "SELECT MAX(FreeAmt) as FreeAmt " +
-									" FROM M_ProductPrice pp " +
-									" INNER JOIN M_PriceList_Version plv ON pp.M_PriceList_Version_ID = plv.M_PriceList_Version_ID " +
-									" INNER JOIN M_PriceList pl ON plv.M_PriceList_ID = pl.M_PriceList_ID " +
-									" WHERE pp.IsActive = 'Y' AND M_product_ID = "+oLine.getM_Product_ID()+
-									" AND pl.M_priceList_ID = "+order.getM_PriceList_ID());
-							if(newAmt == null )
-								newAmt = Env.ONE;
-							if(newAmt != null && newAmt.compareTo(Env.ZERO) <= 0)
-								newAmt = Env.ONE;
-							//precio gracia mensual PAT
-							//ininoles consultamos monto
-							BigDecimal newAmtPAT = DB.getSQLValueBD(po.get_TrxName(), "SELECT MAX(PricePATFree) as FreeAmt " +
-									" FROM M_ProductPrice pp " +
-									" INNER JOIN M_PriceList_Version plv ON pp.M_PriceList_Version_ID = plv.M_PriceList_Version_ID " +
-									" INNER JOIN M_PriceList pl ON plv.M_PriceList_ID = pl.M_PriceList_ID " +
-									" WHERE pp.IsActive = 'Y' AND M_product_ID = "+oLine.getM_Product_ID()+
-									" AND pl.M_priceList_ID = "+order.getM_PriceList_ID());
-							if(newAmtPAT == null )
-								newAmtPAT = Env.ZERO;
-							if(newAmtPAT != null && newAmt.compareTo(Env.ZERO) <= 0)
-								newAmtPAT = Env.ZERO;
-							
-							if(cant >= 0)
-							{
-								MOrderLine oLineNew = new MOrderLine(order);
-								oLineNew.setAD_Org_ID(oLine.getAD_Org_ID());
-								oLineNew.setC_BPartner_Location_ID(oLine.getC_BPartner_Location_ID());
-								oLineNew.set_CustomColumn("C_BPartnerRef_ID", oLine.get_ValueAsInt("C_BPartnerRef_ID"));
-								oLineNew.setM_Product_ID(oLine.getM_Product_ID());
-								oLineNew.setQty(oLine.getQtyEntered());
-								oLineNew.set_CustomColumn("C_CalendarCOPESA_ID", oLine.get_ValueAsInt("C_CalendarCOPESA_ID"));
-								//ininoles seteamos nuevo monto
-								//oLineNew.setPrice(Env.ONE);
-								oLineNew.setPrice(newAmt);
-								oLineNew.set_CustomColumn("C_OrderLineRef_ID", oLine.get_ID());
-								oLineNew.set_CustomColumn("IsFree", true);
-								//oLineNew.set_CustomColumn("DatePromised2", order.getDateOrdered());
-								oLineNew.set_CustomColumn("DatePromised2", order.getDatePromised());
-								oLineNew.set_CustomColumn("M_Locator_ID", oLine.get_ValueAsInt("M_Locator_ID"));
-								
-								//se suman dias a fecha fin
-								//ininoles nueva validacion y cambios para fecha fin
-								Calendar calendar = Calendar.getInstance();
-								calendar.setTimeInMillis(order.getDateOrdered().getTime());
-								if(cant > 0)
-								{
-									calendar.add(Calendar.DATE, cant);
-									Timestamp datEnd = new Timestamp(calendar.getTimeInMillis());					
-									oLineNew.set_CustomColumn("DatePromised3", datEnd);
-								}else if(cant == 0){									
-									oLineNew.set_CustomColumn("DatePromised3", order.getDateOrdered());
-								}						
-								//campo gracia
-								if(newAmtPAT != null && newAmtPAT.compareTo(Env.ZERO) > 0)
-								{
-									oLineNew.set_CustomColumn("MonthlyAmount",newAmtPAT);
-								}
-								int geozoneid = oLine.get_ValueAsInt("C_Geozone_ID");
-								if (geozoneid <= 0)
-								    geozoneid = COPESAOrderOps.getLineGeozone(oLine);
-								if (geozoneid > 0)
-								{	
-								    oLineNew.set_CustomColumn("C_Geozone_ID", geozoneid);
-								    oLine.set_CustomColumn("C_Geozone_ID", geozoneid);
-								}    
-								oLineNew.save();
-								//actualizamos fecha de inicio de linea base
-								calendar.add(Calendar.DATE, 1);
-								oLine.set_CustomColumn("DatePromised2",new Timestamp(calendar.getTimeInMillis()));
-								//TODO: Poner fecha correcta (no siempre es necesario poner null)
-								oLine.set_CustomColumn("DatePromised3",null);		
-								oLine.set_CustomColumn("C_OrderLineRef_ID", oLineNew.get_ID());												
-								oLine.save();																						
-							}
-						}
+						if( lines[i].get_ID() == lineid )
+							oLine = lines[i]; 
 					}
-				}
+			    	
+					if( oLine == null )
+						continue;
+					
+			    	freedays = rs.getInt(2);
+			    	newAmt = rs.getBigDecimal(3);
+			    	newAmtPAT = rs.getBigDecimal(4);
+			    	durationdays = rs.getInt(5);
+                    
+			    	if(newAmt == null || newAmt.compareTo(Env.ZERO) <= 0)
+						newAmt = Env.ONE;
+					
+					if(newAmtPAT == null || newAmtPAT.compareTo(Env.ZERO) <= 0)
+						newAmtPAT = Env.ONE;
+			    	
+			    	if( freedays >= 0 )
+			    		COPESAOrderOps.createFreeLine(order, oLine, freedays, newAmt, newAmtPAT, durationdays);
+			    	
+			    	freedays = -1;
+			    	durationdays = -1;
+			    	newAmt = null;
+			    	newAmtPAT = null;
+			    }	
+			    rs.close();
+			    pstmt.close();
+				
 			}
 		}
 	return null;
 	}	//	modelChange
 
+	
 	public String docValidate (PO po, int timing)
 	{
 		log.info(po.get_TableName() + " Timing: "+timing);
